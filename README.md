@@ -1,4 +1,4 @@
-<p align="center">
+<img width="256" height="256" alt="image" src="https://github.com/user-attachments/assets/bd472412-e383-46d4-b65b-3217e0a6bcd5" /><p align="center">
   <!-- Opzionale: metti una gif/banner in assets e aggiorna il path -->
   <img src="assets/hero.gif" alt="Coding Hero" width="800" />
 </p>
@@ -52,11 +52,8 @@ I like building software that is:
 
 ## 📌 Featured
 
-> Pin qui 2–6 repo sul tuo profilo per valorizzare i progetti migliori.
-
-- 🚀 **Project A** — breve descrizione (tech: Flutter, Firebase)
-- 🧠 **Project B** — breve descrizione (tech: Java, MySQL)
-- 🔧 **Project C** — breve descrizione (tech: Python)
+- 💪🏻 **Gym Track** — breve descrizione (tech: Flutter, Drift)
+- 🔧 **Easy Car** — breve descrizione (tech: Flutter, Firebase)
 
 ---
 
