@@ -3,7 +3,9 @@
   <img src="assets/hero.gif" alt="Coding Hero" width="800" />
 </p>
 
-<h1 align="center">Hi, I'm Calogero Lumia! 👋</h1>
+<h1 align="center">
+  Hi, I'm Calogero Lumia! <img src="https://media.giphy.com/media/hvRJCLFzcasrR4ia7z/giphy.gif" width="35" alt="Waving hand" />
+</h1>
 
 <p align="center">
   Software Engineer • Mobile (Flutter) & Backend • System Design
@@ -36,21 +38,6 @@
   </a>
 </p>
 
-**Languages**
-- Java • Python • Dart
-
-**Mobile**
-- Flutter (UI, state management, clean architecture, performance)
-
-**Backend & Data**
-- MySQL • Firebase (Auth, Firestore/Realtime DB, Cloud Functions)
-
-**Engineering**
-- System Design • Optimization • Debugging • Profiling
-
-**Tooling**
-- Git • GitHub/GitLab • CI/CD
-
 ---
 
 ## 🧩 Engineering Mindset
@@ -73,34 +60,31 @@ I like building software that is:
 
 ---
 
-## 📊 GitHub Stats (optional)
-
-<!-- Sostituisci YOUR_GITHUB_USERNAME -->
+## 📈 GitHub Analytics
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api?username=YOUR_GITHUB_USERNAME&show_icons=true" alt="GitHub stats" />
+  <img width="49%" src="https://github-readme-activity-graph.vercel.app/graph?username=calogerolumia-wq&hide_border=true" alt="Activity Graph" />
 </p>
 
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=YOUR_GITHUB_USERNAME&layout=compact" alt="Top languages" />
+  <img src="https://komarev.com/ghpvc/?username=calogerolumia-wq&style=for-the-badge" alt="Profile views" />
 </p>
 
----
 
 ---
 
 ## 🌐 Connect with me
 
 <p align="center">
-  <a href="https://instagram.com/TUO_USERNAME" target="_blank">
+  <a href="https://instagram.com/calogero_lumia" target="_blank">
     <img src="https://img.shields.io/badge/Instagram-Follow-E4405F?style=for-the-badge&logo=instagram&logoColor=white" />
   </a>
   <a href="https://facebook.com/TUO_PROFILO" target="_blank">
     <img src="https://img.shields.io/badge/Facebook-Add%20me-1877F2?style=for-the-badge&logo=facebook&logoColor=white" />
   </a>
-  <a href="https://www.linkedin.com/in/TUO_PROFILO" target="_blank">
+  <a href="www.linkedin.com/in/calogero-lumia-827ba0301" target="_blank">
     <img src="https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" />
   </a>
-  <a href="https://github.com/TUO_USERNAME" target="_blank">
+  <a href="https://github.com/calogerolumia-wq" target="_blank">
     <img src="https://img.shields.io/badge/GitHub-Follow-181717?style=for-the-badge&logo=github&logoColor=white" />
   </a>
 </p>
