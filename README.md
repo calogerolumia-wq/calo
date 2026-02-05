@@ -29,9 +29,10 @@
 ## ⚙️ Tech Stack
 
 <p align="center">
-  <!-- Icone rapide (comode e pulite) -->
   <a href="https://skillicons.dev">
-    <img src="https://skillicons.dev/icons?i=java,python,dart,flutter,mysql,firebase,git,github,gitlab" />
+    <img src="https://skillicons.dev/icons?i=python,dart,flutter,mysql,firebase,gitlab" />
+    <br/>
+    <img src="https://skillicons.dev/icons?i=matlab,pytorch,tensorflow,vue,spring,c" />
   </a>
 </p>
 
@@ -42,13 +43,13 @@
 - Flutter (UI, state management, clean architecture, performance)
 
 **Backend & Data**
-- MySQL • Firebase (Auth, Firestore/Realtime DB, Cloud Functions — se applicabile)
+- MySQL • Firebase (Auth, Firestore/Realtime DB, Cloud Functions)
 
 **Engineering**
 - System Design • Optimization • Debugging • Profiling
 
 **Tooling**
-- Git • GitHub/GitLab • CI/CD (opzionale: inserisci i tool che usi)
+- Git • GitHub/GitLab • CI/CD
 
 ---
 
@@ -62,7 +63,7 @@ I like building software that is:
 
 ---
 
-## 📌 Featured (optional)
+## 📌 Featured
 
 > Pin qui 2–6 repo sul tuo profilo per valorizzare i progetti migliori.
 
@@ -85,21 +86,22 @@ I like building software that is:
 
 ---
 
-## 🤝 Connect with Me
+---
+
+## 🌐 Connect with me
 
 <p align="center">
-  <!-- Sostituisci i link -->
-  <a href="https://www.linkedin.com/in/YOUR_LINKEDIN/">
-    <img src="https://img.shields.io/badge/LinkedIn-Connect-informational" alt="LinkedIn" />
+  <a href="https://instagram.com/TUO_USERNAME" target="_blank">
+    <img src="https://img.shields.io/badge/Instagram-Follow-E4405F?style=for-the-badge&logo=instagram&logoColor=white" />
   </a>
-  <a href="mailto:YOUR_EMAIL@example.com">
-    <img src="https://img.shields.io/badge/Email-Contact-informational" alt="Email" />
+  <a href="https://facebook.com/TUO_PROFILO" target="_blank">
+    <img src="https://img.shields.io/badge/Facebook-Add%20me-1877F2?style=for-the-badge&logo=facebook&logoColor=white" />
   </a>
-  <a href="https://YOUR_PORTFOLIO_URL">
-    <img src="https://img.shields.io/badge/Portfolio-Visit-informational" alt="Portfolio" />
+  <a href="https://www.linkedin.com/in/TUO_PROFILO" target="_blank">
+    <img src="https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" />
   </a>
-  [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/TUO-LINK/)
-[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:TUAEMAIL@example.com)
-[![GitHub](https://img.shields.io/badge/GitHub-Follow-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/TUOUSERNAME)
-
+  <a href="https://github.com/TUO_USERNAME" target="_blank">
+    <img src="https://img.shields.io/badge/GitHub-Follow-181717?style=for-the-badge&logo=github&logoColor=white" />
+  </a>
 </p>
+
