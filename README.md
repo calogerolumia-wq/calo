@@ -19,6 +19,7 @@
 ## About Me
 
 - 🎓 Bachelor's Degree in **Computer Engineering** — **University of Kore Enna**
+- 📚 **M.Sc. Student** in **Artificial Intelligence & Cyber Security Engineering** — **University of Kore Enna**
 - 💼 Software Engineer at **ByronWeb**
 - 🧠 Strong focus on **problem solving**, **system design**, and **performance optimization**
 - 📱 Proficient in **Flutter** for cross-platform mobile development
