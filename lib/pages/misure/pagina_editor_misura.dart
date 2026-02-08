@@ -128,11 +128,18 @@ class _PaginaEditorMisuraState extends ConsumerState<PaginaEditorMisura> {
   Future<void> _salvaMisura(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
     final archivio = ref.read(fornitoreArchivioLocale);
+    final idUtente = ref.read(fornitoreIdUtenteCorrente);
+    if (idUtente == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Utente non autenticato')),
+      );
+      return;
+    }
     final peso = double.tryParse(_pesoController.text);
     if (peso == null) return;
 
     final misura = MisurazioniCompanion.insert(
-      utenteId: idUtenteDemo,
+      utenteId: idUtente,
       peso: peso,
       percentualeMassaGrassa:
           Value(double.tryParse(_massaGrassaController.text)),

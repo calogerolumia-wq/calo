@@ -14,6 +14,12 @@ class PaginaMisure extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final archivio = ref.watch(fornitoreArchivioLocale);
+    final idUtente = ref.watch(fornitoreIdUtenteCorrente);
+    if (idUtente == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Misure'),
@@ -29,7 +35,7 @@ class PaginaMisure extends ConsumerWidget {
         ],
       ),
       body: StreamBuilder<List<MisurazioniData>>(
-        stream: archivio.guardaMisure(idUtenteDemo),
+        stream: archivio.guardaMisure(idUtente),
         builder: (context, snapshot) {
           final misure = snapshot.data ?? [];
           return ListView(

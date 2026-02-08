@@ -57,6 +57,16 @@ class SerieRegistrataConEsercizio {
   final EserciziData esercizio;
 }
 
+class SessioneAuth {
+  const SessioneAuth({
+    required this.utenteId,
+    required this.token,
+  });
+
+  final int utenteId;
+  final String token;
+}
+
 
 class ElementoSchedaIngresso {
   const ElementoSchedaIngresso({
@@ -495,6 +505,71 @@ class ArchivioLocale extends _$ArchivioLocale {
         ),
       );
     }
+  }
+
+  Future<UtentiData?> leggiUtentePerId(int id) {
+    return (select(utenti)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+  }
+
+  Future<void> salvaUtente({
+    required int id,
+    required String nome,
+    String? email,
+  }) async {
+    await into(utenti).insertOnConflictUpdate(
+      UtentiCompanion(
+        id: Value(id),
+        nome: Value(nome),
+        email: Value(email),
+      ),
+    );
+  }
+
+  Future<void> salvaSessioneAuth({
+    required int utenteId,
+    required String token,
+  }) async {
+    await into(impostazioni).insertOnConflictUpdate(
+      ImpostazioniCompanion(
+        chiave: const Value('auth_user_id'),
+        valore: Value(utenteId.toString()),
+      ),
+    );
+    await into(impostazioni).insertOnConflictUpdate(
+      ImpostazioniCompanion(
+        chiave: const Value('auth_token'),
+        valore: Value(token),
+      ),
+    );
+  }
+
+  Future<SessioneAuth?> leggiSessioneAuth() async {
+    final idVoce = await (select(impostazioni)
+          ..where((tbl) => tbl.chiave.equals('auth_user_id')))
+        .getSingleOrNull();
+    final tokenVoce = await (select(impostazioni)
+          ..where((tbl) => tbl.chiave.equals('auth_token')))
+        .getSingleOrNull();
+
+    if (idVoce == null || tokenVoce == null) {
+      return null;
+    }
+
+    final utenteId = int.tryParse(idVoce.valore);
+    final token = tokenVoce.valore;
+    if (utenteId == null || token.isEmpty) {
+      return null;
+    }
+    return SessioneAuth(utenteId: utenteId, token: token);
+  }
+
+  Future<void> eliminaSessioneAuth() async {
+    await (delete(impostazioni)
+          ..where((tbl) => tbl.chiave.equals('auth_user_id')))
+        .go();
+    await (delete(impostazioni)
+          ..where((tbl) => tbl.chiave.equals('auth_token')))
+        .go();
   }
 
   Future<int> leggiRecuperoSecondi() async {

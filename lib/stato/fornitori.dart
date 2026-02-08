@@ -3,13 +3,118 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/archivio_locale.dart';
-
-const int idUtenteDemo = 1;
+import '../utils/auth_api.dart';
 
 final fornitoreArchivioLocale = Provider<ArchivioLocale>((ref) {
   final archivio = ArchivioLocale();
   ref.onDispose(archivio.close);
   return archivio;
+});
+
+class StatoAutenticazione {
+  const StatoAutenticazione._({this.utente, this.token});
+
+  final UtentiData? utente;
+  final String? token;
+
+  bool get autenticato => utente != null && token != null;
+
+  factory StatoAutenticazione.nonAutenticato() =>
+      const StatoAutenticazione._();
+
+  factory StatoAutenticazione.autenticato(
+    UtentiData utente,
+    String token,
+  ) =>
+      StatoAutenticazione._(utente: utente, token: token);
+}
+
+final gestoreAutenticazione =
+    AsyncNotifierProvider<GestoreAutenticazione, StatoAutenticazione>(
+  GestoreAutenticazione.new,
+);
+
+class GestoreAutenticazione extends AsyncNotifier<StatoAutenticazione> {
+  @override
+  Future<StatoAutenticazione> build() async {
+    final archivio = ref.read(fornitoreArchivioLocale);
+    final sessione = await archivio.leggiSessioneAuth();
+    if (sessione == null) {
+      return StatoAutenticazione.nonAutenticato();
+    }
+
+    final utente = await archivio.leggiUtentePerId(sessione.utenteId);
+    if (utente == null) {
+      await archivio.eliminaSessioneAuth();
+      return StatoAutenticazione.nonAutenticato();
+    }
+
+    return StatoAutenticazione.autenticato(utente, sessione.token);
+  }
+
+  Future<void> login({
+    required String username,
+    required String password,
+    String? codiceAzienda,
+    int? aziendaId,
+  }) async {
+    final archivio = ref.read(fornitoreArchivioLocale);
+    final api = AuthApi();
+    final risposta = await api.login(
+      username: username,
+      password: password,
+      codiceAzienda: codiceAzienda,
+      aziendaId: aziendaId,
+    );
+
+    await archivio.salvaUtente(
+      id: risposta.id,
+      nome: risposta.nomeCompleto,
+      email: risposta.email,
+    );
+    await archivio.salvaSessioneAuth(
+      utenteId: risposta.id,
+      token: risposta.token,
+    );
+
+    final utente = await archivio.leggiUtentePerId(risposta.id);
+    if (utente == null) {
+      throw AuthException('Impossibile salvare i dati utente');
+    }
+
+    state = AsyncValue.data(
+      StatoAutenticazione.autenticato(utente, risposta.token),
+    );
+  }
+
+  Future<void> logout() async {
+    final auth = state.valueOrNull;
+    final token = auth?.token;
+    if (token == null) {
+      state = AsyncValue.data(StatoAutenticazione.nonAutenticato());
+      return;
+    }
+
+    final api = AuthApi();
+    try {
+      await api.logout(token: token);
+    } catch (_) {
+      // Logout locale comunque, il server e' stateless.
+    }
+
+    final archivio = ref.read(fornitoreArchivioLocale);
+    await archivio.eliminaSessioneAuth();
+    state = AsyncValue.data(StatoAutenticazione.nonAutenticato());
+  }
+}
+
+final fornitoreUtenteCorrente = Provider<UtentiData?>((ref) {
+  final auth = ref.watch(gestoreAutenticazione).valueOrNull;
+  return auth?.utente;
+});
+
+final fornitoreIdUtenteCorrente = Provider<int?>((ref) {
+  return ref.watch(fornitoreUtenteCorrente)?.id;
 });
 
 final fornitoreRecuperoSecondi = FutureProvider<int>((ref) async {
@@ -41,13 +146,19 @@ class GestoreSessioneAttiva extends AsyncNotifier<SessioniAllenamentoData?> {
   @override
   Future<SessioniAllenamentoData?> build() async {
     final archivio = ref.read(fornitoreArchivioLocale);
-    return archivio.leggiSessioneAttiva(idUtenteDemo);
+    final idUtente = ref.watch(fornitoreIdUtenteCorrente);
+    if (idUtente == null) return null;
+    return archivio.leggiSessioneAttiva(idUtente);
   }
 
   Future<int> avviaDaScheda(int schedaId) async {
     final archivio = ref.read(fornitoreArchivioLocale);
+    final idUtente = ref.read(fornitoreIdUtenteCorrente);
+    if (idUtente == null) {
+      throw StateError('Utente non autenticato');
+    }
     final idSessione =
-        await archivio.avviaSessione(schedaId: schedaId, utenteId: idUtenteDemo);
+        await archivio.avviaSessione(schedaId: schedaId, utenteId: idUtente);
     final sessione = await archivio.leggiSessionePerId(idSessione);
     state = AsyncValue.data(sessione);
     return idSessione;

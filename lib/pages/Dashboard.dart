@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/archivio_locale.dart';
 import '../stato/fornitori.dart';
+import '../ui/app_drawer.dart';
 import '../ui/app_ui.dart';
 import '../utils/immagini_esercizi.dart';
 import 'Impostazioni.dart';
@@ -23,6 +24,7 @@ class PaginaDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
+      drawer: const AppDrawer(),
       body: Stack(
         children: [
           const _DashboardBackground(),
@@ -204,28 +206,35 @@ class _DashboardHeader extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => Scaffold.of(context).openDrawer(),
                 borderRadius: BorderRadius.circular(AppRadius.lg),
-                gradient: LinearGradient(
-                  colors: [
-                    c.primary.withOpacity(0.95),
-                    c.secondary.withOpacity(0.95),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: c.primary.withOpacity(isDark ? 0.14 : 0.10),
-                    blurRadius: 18,
-                    offset: const Offset(0, 10),
+                child: Ink(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    gradient: LinearGradient(
+                      colors: [
+                        c.primary.withOpacity(0.95),
+                        c.secondary.withOpacity(0.95),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: c.primary.withOpacity(isDark ? 0.14 : 0.10),
+                        blurRadius: 18,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
-                ],
+                  child: Icon(Icons.fitness_center, color: c.onPrimary, size: 22),
+                ),
               ),
-              child: Icon(Icons.fitness_center, color: c.onPrimary, size: 22),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -806,6 +815,11 @@ class _ProgressModule extends ConsumerWidget {
     final c = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final archivio = ref.watch(fornitoreArchivioLocale);
+    final idUtente = ref.watch(fornitoreIdUtenteCorrente);
+
+    if (idUtente == null) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -816,7 +830,7 @@ class _ProgressModule extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         StreamBuilder<List<SessioneCalendario>>(
-          stream: archivio.guardaSessioniCompletate(idUtenteDemo),
+          stream: archivio.guardaSessioniCompletate(idUtente),
           builder: (context, snapshot) {
             if (snapshot.hasError) {
               return const AppInlineBanner(message: 'Progressi non disponibili.');
@@ -931,6 +945,15 @@ class _CalendarioMigliorato extends ConsumerWidget {
     final archivio = ref.watch(fornitoreArchivioLocale);
     final theme = Theme.of(context);
     final c = theme.colorScheme;
+    final idUtente = ref.watch(fornitoreIdUtenteCorrente);
+
+    if (idUtente == null) {
+      return const SizedBox.shrink();
+    }
+
+    if (idUtente == null) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -951,7 +974,7 @@ class _CalendarioMigliorato extends ConsumerWidget {
         AppCard(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: StreamBuilder<List<SessioneCalendario>>(
-            stream: archivio.guardaSessioniCompletate(idUtenteDemo),
+            stream: archivio.guardaSessioniCompletate(idUtente),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return const AppInlineBanner(message: 'Cronologia non disponibile.');
@@ -1023,6 +1046,16 @@ class _MisureMigliorate extends ConsumerWidget {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
 
+    final idUtente = ref.watch(fornitoreIdUtenteCorrente);
+
+    if (idUtente == null) {
+      return const SizedBox.shrink();
+    }
+
+    if (idUtente == null) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1041,7 +1074,7 @@ class _MisureMigliorate extends ConsumerWidget {
         const SizedBox(height: AppSpacing.md),
         AppCard(
           child: StreamBuilder<List<MisurazioniData>>(
-            stream: archivio.guardaMisure(idUtenteDemo),
+            stream: archivio.guardaMisure(idUtente),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return const AppInlineBanner(message: 'Misure non disponibili.');

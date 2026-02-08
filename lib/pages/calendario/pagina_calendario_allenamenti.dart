@@ -23,15 +23,22 @@ class _PaginaCalendarioAllenamentiState
   @override
   Widget build(BuildContext context) {
     final archivio = ref.watch(fornitoreArchivioLocale);
+    final idUtente = ref.watch(fornitoreIdUtenteCorrente);
     final tema = Theme.of(context);
     final colori = tema.colorScheme;
+
+    if (idUtente == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calendario allenamenti'),
       ),
       body: StreamBuilder<List<SessioneCalendario>>(
-        stream: archivio.guardaSessioniCompletate(idUtenteDemo),
+        stream: archivio.guardaSessioniCompletate(idUtente),
         builder: (context, snapshot) {
           final sessioni = snapshot.data ?? [];
           final eventi = <DateTime, List<SessioneCalendario>>{};

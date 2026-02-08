@@ -589,6 +589,13 @@ class _PaginaEditorSchedaState extends ConsumerState<PaginaEditorScheda> {
     }
 
     final archivio = ref.read(fornitoreArchivioLocale);
+    final idUtente = ref.read(fornitoreIdUtenteCorrente);
+    if (idUtente == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Utente non autenticato')),
+      );
+      return;
+    }
 
     final SchedeCompanion schedaCompanion = widget.schedaId == null
         ? SchedeCompanion.insert(
@@ -599,7 +606,7 @@ class _PaginaEditorSchedaState extends ConsumerState<PaginaEditorScheda> {
       livelloDifficolta: Value(_livelloController.text.trim().isEmpty
           ? null
           : _livelloController.text.trim()),
-      utenteId: idUtenteDemo,
+      utenteId: idUtente,
       modello: Value(_modello),
       attiva: Value(_attiva),
       dataAssegnazione: Value(_dataAssegnazione ?? DateTime.now()),
@@ -617,7 +624,7 @@ class _PaginaEditorSchedaState extends ConsumerState<PaginaEditorScheda> {
       livelloDifficolta: Value(_livelloController.text.trim().isEmpty
           ? null
           : _livelloController.text.trim()),
-      utenteId: const Value(idUtenteDemo),
+      utenteId: Value(idUtente),
       modello: Value(_modello),
       attiva: Value(_attiva),
       dataAssegnazione: Value(_dataAssegnazione ?? DateTime.now()),
