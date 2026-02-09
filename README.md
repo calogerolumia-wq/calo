@@ -10,6 +10,10 @@
   Software Engineer • Mobile (Flutter) & Backend • System Design
 </p>
 
+<p align= "center">
+  🎓 MSc Student in Artificial Intelligence & Cybersecurity Engineering | University Kore of Enna
+</p>
+
 <p align="center">
   <em>“Build clean software. Ship fast. Optimize relentlessly.”</em>
 </p>
