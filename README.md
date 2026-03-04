@@ -59,6 +59,7 @@ I like building software that is:
 - 💪🏻 **Gym Track** — Fitness tracker per gestire allenamenti, esercizi e progressi, con dati salvati in locale per performance e offline-first. (tech: Flutter, Drift)
 - 🔧 **Easy Car** — App per gestire veicoli e manutenzioni con autenticazione e sincronizzazione cloud, notifiche e storage dati in tempo reale. (tech: Flutter, Firebase)
 - 🏋️ **Gym Manager** — Gestionale web per palestre: gestione iscritti/abbonamenti, presenze e anagrafica, con dashboard amministrativa. (tech: Spring, Vue.js)
+- 🥗 **NutriTrack** — App Flutter offline per importare, correggere e gestire una dieta settimanale, con focus su semplicità d’uso e gestione locale dei dati. (tech: Flutter)
 - 💼 **ByronWeb Unika** — ByronWeb Unika è l'applicazione dedicata ai PCO che consente la rapida creazione delle visite di ispezione in cantiere.
 [![Google Play](https://img.shields.io/badge/Google%20Play-000000?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=it.codebase.byronweb.hr&hl=it)
 [![iOS](https://img.shields.io/badge/iOS-000000?logo=apple&logoColor=white)](https://apps.apple.com/it/app/byronweb-unika/id1579345401)
