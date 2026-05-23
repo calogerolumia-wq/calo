@@ -1,117 +1,115 @@
-﻿import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../database/archivio_locale.dart';
+
+import '../../models/scheda_remota.dart';
 import '../../stato/fornitori.dart';
-import '../../utils/gruppi_allenamento.dart';
-import '../../utils/immagini_esercizi.dart';
+import '../../utils/api_config.dart';
 import '../../utils/navigazione.dart';
 import '../sessione/pagina_sessione_in_corso.dart';
-import 'pagina_editor_scheda.dart';
-import 'pagina_schede.dart';
 
 class PaginaDettaglioScheda extends ConsumerWidget {
-  const PaginaDettaglioScheda({super.key, required this.schedaId});
+  const PaginaDettaglioScheda({super.key, required this.scheda});
 
-  final int schedaId;
+  final SchedaRemota scheda;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tema = Theme.of(context);
     final colori = tema.colorScheme;
-    final archivio = ref.watch(fornitoreArchivioLocale);
+    final eserciziAsync = ref.watch(fornitoreEserciziSchedaRemota(scheda.id));
 
     return Scaffold(
-      body: StreamBuilder<SchedeData?>(
-        stream: archivio.guardaScheda(schedaId),
-        builder: (context, snapshot) {
-          final scheda = snapshot.data;
-          if (scheda == null) {
-            return const Center(child: CircularProgressIndicator());
+      body: eserciziAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 38, color: colori.error),
+                const SizedBox(height: 12),
+                Text(
+                  'Errore nel caricamento degli esercizi',
+                  style: tema.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  e.toString().replaceFirst('Exception: ', ''),
+                  style: tema.textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+        data: (esercizi) {
+          if (esercizi.isEmpty) {
+            return CustomScrollView(
+              slivers: [
+                _buildSliverAppBar(context, colori, tema),
+                _buildCtaSessione(context, ref, esercizi),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: _BoxVuoto(
+                      titolo: 'Scheda senza esercizi',
+                      descrizione:
+                          'Aggiungi esercizi a questa scheda dal pannello web.',
+                      icona: Icons.playlist_add,
+                    ),
+                  ),
+                ),
+              ],
+            );
           }
-          return StreamBuilder<List<EsercizioInScheda>>(
-            stream: archivio.guardaEserciziScheda(scheda.id),
-            builder: (context, snapshot) {
-              final elementi = snapshot.data ?? [];
 
-              if (elementi.isEmpty) {
-                return CustomScrollView(
-                  slivers: [
-                    _buildSliverAppBar(context, ref, scheda, colori, tema),
-                    _buildCtaSessione(context, ref, scheda),
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: _BoxVuoto(
-                          titolo: 'Scheda vuota',
-                          descrizione:
-                              'Aggiungi esercizi dall’editor della scheda.',
-                          icona: Icons.playlist_add,
-                          azione: FilledButton.icon(
-                            onPressed: () => apriPagina(
-                              context,
-                              PaginaEditorScheda(schedaId: scheda.id),
-                            ),
-                            icon: const Icon(Icons.edit),
-                            label: const Text('Modifica scheda'),
-                          ),
-                        ),
+          final gruppi = _raggruppaPerGiorno(esercizi);
+
+          return DefaultTabController(
+            length: gruppi.length,
+            child: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                _buildSliverAppBar(
+                  context,
+                  colori,
+                  tema,
+                  tabBar: TabBar(
+                    isScrollable: true,
+                    indicator: UnderlineTabIndicator(
+                      borderSide: BorderSide(
+                        width: 4,
+                        color: colori.primary,
                       ),
+                      borderRadius: BorderRadius.circular(999),
+                      insets: const EdgeInsets.symmetric(horizontal: 12),
                     ),
-                  ],
-                );
-              }
-
-              final gruppi = _raggruppaPerSezione(elementi);
-
-              return DefaultTabController(
-                length: gruppi.length,
-                child: NestedScrollView(
-                  headerSliverBuilder: (context, innerBoxIsScrolled) => [
-                    _buildSliverAppBar(
-                      context,
-                      ref,
-                      scheda,
-                      colori,
-                      tema,
-                      tabBar: TabBar(
-                        isScrollable: true,
-                        indicator: UnderlineTabIndicator(
-                          borderSide: BorderSide(
-                            width: 4,
-                            color: colori.primary,
-                          ),
-                          borderRadius: BorderRadius.circular(999),
-                          insets: const EdgeInsets.symmetric(horizontal: 12),
-                        ),
-                        indicatorSize: TabBarIndicatorSize.label,
-                        labelStyle: tema.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                        labelColor: colori.primary,
-                        unselectedLabelColor:
-                            colori.onSurface.withOpacity(0.6),
-                        tabs: gruppi
-                            .map((gruppo) => Tab(text: gruppo.nome))
-                            .toList(),
-                      ),
+                    indicatorSize: TabBarIndicatorSize.label,
+                    labelStyle: tema.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
-                    _buildCtaSessione(context, ref, scheda),
-                  ],
-                  body: TabBarView(
-                    children: gruppi
-                        .map(
-                          (gruppo) => _TabSezioneEsercizi(
-                            key: PageStorageKey('sezione_${gruppo.nome}'),
-                            gruppo: gruppo,
-                          ),
-                        )
+                    labelColor: colori.primary,
+                    unselectedLabelColor: colori.onSurface.withOpacity(0.6),
+                    tabs: gruppi
+                        .map((g) => Tab(text: g.nome))
                         .toList(),
                   ),
                 ),
-              );
-            },
+                _buildCtaSessione(context, ref, esercizi),
+              ],
+              body: TabBarView(
+                children: gruppi
+                    .map(
+                      (g) => _TabSezioneEsercizi(
+                        key: PageStorageKey('sezione_${g.nome}'),
+                        gruppo: g,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
           );
         },
       ),
@@ -120,8 +118,6 @@ class PaginaDettaglioScheda extends ConsumerWidget {
 
   SliverAppBar _buildSliverAppBar(
     BuildContext context,
-    WidgetRef ref,
-    SchedeData scheda,
     ColorScheme colori,
     ThemeData tema, {
     PreferredSizeWidget? tabBar,
@@ -148,21 +144,6 @@ class PaginaDettaglioScheda extends ConsumerWidget {
                 child: tabBar,
               ),
             ),
-      actions: [
-        IconButton(
-          onPressed: () => apriPagina(
-            context,
-            PaginaEditorScheda(schedaId: scheda.id),
-          ),
-          icon: const Icon(Icons.edit_outlined),
-          tooltip: 'Modifica',
-        ),
-        IconButton(
-          onPressed: () => _confermaEliminazione(context, ref),
-          icon: const Icon(Icons.delete_outline),
-          tooltip: 'Elimina',
-        ),
-      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
@@ -192,8 +173,7 @@ class PaginaDettaglioScheda extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      scheda.descrizione ??
-                          'Piano di allenamento personalizzato',
+                      scheda.descrizione ?? 'Piano di allenamento personalizzato',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: tema.textTheme.bodyMedium?.copyWith(
@@ -213,11 +193,6 @@ class PaginaDettaglioScheda extends ConsumerWidget {
                           icona: Icons.check_circle_outline,
                           testo: scheda.attiva ? 'Attiva' : 'Inattiva',
                         ),
-                        if (scheda.modello)
-                          const _ChipInfo(
-                            icona: Icons.layers_outlined,
-                            testo: 'Modello',
-                          ),
                       ],
                     ),
                     SizedBox(height: tabBarHeight),
@@ -234,7 +209,7 @@ class PaginaDettaglioScheda extends ConsumerWidget {
   SliverToBoxAdapter _buildCtaSessione(
     BuildContext context,
     WidgetRef ref,
-    SchedeData scheda,
+    List<EsercizioInSchedaRemota> esercizi,
   ) {
     return SliverToBoxAdapter(
       child: Padding(
@@ -243,15 +218,21 @@ class PaginaDettaglioScheda extends ConsumerWidget {
           width: double.infinity,
           child: FilledButton.icon(
             onPressed: () async {
-              final idSessione =
-                  await ref.read(gestoreSessioneAttiva.notifier).avviaDaScheda(
-                        scheda.id,
-                      );
-              if (!context.mounted) return;
-              apriPagina(
-                context,
-                PaginaSessioneInCorso(sessioneId: idSessione),
-              );
+              try {
+                final idSessione = await ref
+                    .read(gestoreSessioneAttiva.notifier)
+                    .avviaDaSchedaRemota(scheda, esercizi);
+                if (!context.mounted) return;
+                apriPagina(
+                  context,
+                  PaginaSessioneInCorso(sessioneId: idSessione),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Errore: $e')),
+                );
+              }
             },
             icon: const Icon(Icons.play_arrow),
             label: const Text('Avvia sessione'),
@@ -261,59 +242,24 @@ class PaginaDettaglioScheda extends ConsumerWidget {
     );
   }
 
-  List<_GruppoSezione> _raggruppaPerSezione(List<EsercizioInScheda> elementi) {
-    // Mantieni ordine già definito in query (ordineSezione + ordineEsercizio)
-    final mappa = <String, List<EsercizioInScheda>>{};
-    final ordine = <String>[];
-
-    for (final e in elementi) {
-      final infoSezione = decodificaSezioneConGruppo(e.sezione);
-      final nome = infoSezione.sezione.trim().isEmpty
-          ? 'Allenamento'
-          : infoSezione.sezione.trim();
-      if (!mappa.containsKey(nome)) ordine.add(nome);
-      (mappa[nome] ??= []).add(e);
+  List<_GruppoSezione> _raggruppaPerGiorno(
+      List<EsercizioInSchedaRemota> esercizi) {
+    final mappa = <int, List<EsercizioInSchedaRemota>>{};
+    for (final e in esercizi) {
+      (mappa[e.giorno] ??= []).add(e);
     }
-
-    return ordine.map((nome) => _GruppoSezione(nome: nome, elementi: mappa[nome]!)).toList();
-  }
-
-  Future<void> _confermaEliminazione(BuildContext context, WidgetRef ref) async {
-    final conferma = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminare scheda?'),
-        content: const Text('Questa azione rimuoverà la scheda e gli esercizi associati.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annulla'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Elimina'),
-          ),
-        ],
-      ),
-    );
-
-    if (conferma != true) return;
-
-    final archivio = ref.read(fornitoreArchivioLocale);
-    await archivio.eliminaScheda(schedaId);
-    if (context.mounted) {
-      vaiAllaPaginaPrincipale(
-        context,
-        const PaginaSchede(),
-      );
-    }
+    final giorni = mappa.keys.toList()..sort();
+    return giorni.map((g) {
+      final nome = g == 0 ? 'Allenamento' : 'Giorno $g';
+      return _GruppoSezione(nome: nome, elementi: mappa[g]!);
+    }).toList();
   }
 }
 
 class _GruppoSezione {
   const _GruppoSezione({required this.nome, required this.elementi});
   final String nome;
-  final List<EsercizioInScheda> elementi;
+  final List<EsercizioInSchedaRemota> elementi;
 }
 
 class _TabSezioneEsercizi extends StatelessWidget {
@@ -340,46 +286,32 @@ class _TabSezioneEsercizi extends StatelessWidget {
             children: [
               Icon(Icons.view_agenda, color: colori.primary),
               const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Esercizi (${gruppo.elementi.length})',
-                  style: tema.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              Text(
+                'Esercizi (${gruppo.elementi.length})',
+                style: tema.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 12),
-        for (int i = 0; i < gruppo.elementi.length; i++)
-          _RigaEsercizioScheda(elemento: gruppo.elementi[i]),
+        for (final elemento in gruppo.elementi)
+          _RigaEsercizio(elemento: elemento),
       ],
     );
   }
 }
 
-class _RigaEsercizioScheda extends StatelessWidget {
-  const _RigaEsercizioScheda({required this.elemento});
+class _RigaEsercizio extends StatelessWidget {
+  const _RigaEsercizio({required this.elemento});
 
-  final EsercizioInScheda elemento;
+  final EsercizioInSchedaRemota elemento;
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final colori = tema.colorScheme;
-
-    final percorso = percorsoImmagineEsercizio(elemento.esercizio);
-    final descrizione = elemento.esercizio.descrizione ??
-        elemento.esercizio.muscoloObiettivo ??
-        'Esercizio mirato';
-    final notaAllenatore = elemento.noteAllenatore?.trim();
-    final durataMinuti = elemento.durataMinuti;
-    final infoGruppo = decodificaSezioneConGruppo(elemento.sezione);
-    final testoGruppo = testoGruppoAllenamento(
-      infoGruppo.tipo,
-      infoGruppo.etichetta,
-    );
 
     return Card(
       elevation: 0,
@@ -397,60 +329,49 @@ class _RigaEsercizioScheda extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(14),
-                  child: _ImmagineCompatta(percorsoImmagine: percorso),
+                  child: _ImmagineEsercizio(url: elemento.immagineUrl),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    elemento.esercizio.nome,
-                    style: tema.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      height: 1.1,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        elemento.nomeEsercizio,
+                        style: tema.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
+                      ),
+                      if (elemento.gruppoMuscolare != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          elemento.gruppoMuscolare!,
+                          style: tema.textTheme.bodySmall?.copyWith(
+                            color: colori.onSurface.withOpacity(0.65),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              descrizione,
-              style: tema.textTheme.bodyMedium?.copyWith(
-                color: colori.onSurface.withOpacity(0.75),
-              ),
-            ),
-            if (notaAllenatore != null && notaAllenatore.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Note: $notaAllenatore',
-                style: tema.textTheme.bodySmall?.copyWith(
-                  color: colori.onSurface.withOpacity(0.7),
-                ),
-              ),
-            ],
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _ChipInfo(icona: Icons.repeat, testo: '${elemento.serie} serie'),
                 _ChipInfo(
-                  icona: Icons.refresh,
-                  testo: '${_testoRipetizioni(elemento)} rep',
-                ),
-                if (durataMinuti != null && durataMinuti > 0)
+                    icona: Icons.repeat,
+                    testo: '${elemento.serie} serie'),
+                _ChipInfo(
+                    icona: Icons.refresh,
+                    testo: '${elemento.ripetizioni} rep'),
+                if (elemento.pesoTarget != null && elemento.pesoTarget! > 0)
                   _ChipInfo(
-                    icona: Icons.timer_outlined,
-                    testo: '$durataMinuti min',
-                  ),
-                if (elemento.peso != null)
-                  _ChipInfo(icona: Icons.scale, testo: '${elemento.peso} kg'),
-                if (testoGruppo.isNotEmpty)
-                  _ChipInfo(
-                    icona: infoGruppo.tipo == TipoGruppoAllenamento.superset
-                        ? Icons.link
-                        : Icons.loop,
-                    testo: testoGruppo,
-                  ),
+                      icona: Icons.scale,
+                      testo: '${elemento.pesoTarget} kg'),
               ],
             ),
           ],
@@ -460,49 +381,60 @@ class _RigaEsercizioScheda extends StatelessWidget {
   }
 }
 
-String _testoRipetizioni(EsercizioInScheda elemento) {
-  final piramidali = elemento.ripetizioniPiramidali;
-  if (piramidali != null && piramidali.trim().isNotEmpty) {
-    return piramidali;
-  }
-  return elemento.ripetizioni.toString();
-}
-
-class _ImmagineCompatta extends StatelessWidget {
-  const _ImmagineCompatta({required this.percorsoImmagine});
-
-  final String percorsoImmagine;
+class _ImmagineEsercizio extends StatelessWidget {
+  const _ImmagineEsercizio({this.url});
+  final String? url;
 
   @override
   Widget build(BuildContext context) {
     final colori = Theme.of(context).colorScheme;
 
     Widget fallback() => Container(
-      width: 52,
-      height: 52,
-      color: colori.surfaceContainerHighest,
-      alignment: Alignment.center,
-      child: Icon(Icons.image, color: colori.onSurface.withOpacity(0.55)),
-    );
+          width: 52,
+          height: 52,
+          color: colori.surfaceContainerHighest,
+          alignment: Alignment.center,
+          child:
+              Icon(Icons.fitness_center, color: colori.onSurface.withOpacity(0.55)),
+        );
 
-    if (percorsoImmagine.trim().isEmpty) return fallback();
+    if (url == null || url!.isEmpty) return fallback();
 
-    final usaAsset = immagineEAsset(percorsoImmagine);
+    final String resolvedUrl;
+    if (url!.startsWith('http')) {
+      resolvedUrl = url!;
+    } else if (url!.startsWith('assets/')) {
+      return Image.asset(
+        url!,
+        width: 52,
+        height: 52,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback(),
+      );
+    } else {
+      resolvedUrl = '$apiBaseUrl/${url!.replaceAll(RegExp(r'^/'), '')}';
+    }
 
-    return usaAsset
-        ? Image.asset(
-      percorsoImmagine,
+    return Image.network(
+      resolvedUrl,
       width: 52,
       height: 52,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stack) => fallback(),
-    )
-        : Image.file(
-      File(percorsoImmagine),
-      width: 52,
-      height: 52,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stack) => fallback(),
+      errorBuilder: (_, __, ___) => fallback(),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return Container(
+          width: 52,
+          height: 52,
+          color: colori.surfaceContainerHighest,
+          alignment: Alignment.center,
+          child: const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+      },
     );
   }
 }
@@ -547,13 +479,11 @@ class _BoxVuoto extends StatelessWidget {
     required this.titolo,
     required this.descrizione,
     required this.icona,
-    required this.azione,
   });
 
   final String titolo;
   final String descrizione;
   final IconData icona;
-  final Widget azione;
 
   @override
   Widget build(BuildContext context) {
@@ -586,8 +516,6 @@ class _BoxVuoto extends StatelessWidget {
               color: colori.onSurface.withOpacity(0.75),
             ),
           ),
-          const SizedBox(height: 14),
-          azione,
         ],
       ),
     );

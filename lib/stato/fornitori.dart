@@ -3,6 +3,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/archivio_locale.dart';
+import '../models/scheda_remota.dart';
+import '../services/schede_service.dart';
 import '../utils/auth_api.dart';
 
 final fornitoreArchivioLocale = Provider<ArchivioLocale>((ref) {
@@ -164,6 +166,29 @@ class GestoreSessioneAttiva extends AsyncNotifier<SessioniAllenamentoData?> {
     return idSessione;
   }
 
+  Future<int> avviaDaSchedaRemota(
+    SchedaRemota scheda,
+    List<EsercizioInSchedaRemota> esercizi,
+  ) async {
+    final archivio = ref.read(fornitoreArchivioLocale);
+    final idUtente = ref.read(fornitoreIdUtenteCorrente);
+    if (idUtente == null) throw StateError('Utente non autenticato');
+
+    await archivio.sincronizzaSchedaRemota(
+      utenteId: idUtente,
+      scheda: scheda,
+      eserciziRemoti: esercizi,
+    );
+
+    final idSessione = await archivio.avviaSessione(
+      schedaId: scheda.id,
+      utenteId: idUtente,
+    );
+    final sessione = await archivio.leggiSessionePerId(idSessione);
+    state = AsyncValue.data(sessione);
+    return idSessione;
+  }
+
   Future<void> completaSessione(int sessioneId) async {
     final archivio = ref.read(fornitoreArchivioLocale);
     await archivio.completaSessione(sessioneId);
@@ -278,3 +303,32 @@ class GestoreTimerRecupero extends StateNotifier<StatoTimerRecupero> {
     super.dispose();
   }
 }
+
+// ---------------------------------------------------------------------------
+// Schede remote (dal backend)
+// ---------------------------------------------------------------------------
+
+final fornitoreSchedeRemote =
+    AsyncNotifierProvider.autoDispose<GestoreSchedeRemote, List<SchedaRemota>>(
+  GestoreSchedeRemote.new,
+);
+
+class GestoreSchedeRemote extends AutoDisposeAsyncNotifier<List<SchedaRemota>> {
+  @override
+  Future<List<SchedaRemota>> build() async {
+    final auth = ref.watch(gestoreAutenticazione).valueOrNull;
+    if (auth == null || !auth.autenticato || auth.token == null) return [];
+    return SchedeService(token: auth.token!).getSchede();
+  }
+
+  Future<void> ricarica() async {
+    ref.invalidateSelf();
+  }
+}
+
+final fornitoreEserciziSchedaRemota = FutureProvider.autoDispose
+    .family<List<EsercizioInSchedaRemota>, int>((ref, schedaId) async {
+  final auth = ref.watch(gestoreAutenticazione).valueOrNull;
+  if (auth == null || !auth.autenticato || auth.token == null) return [];
+  return SchedeService(token: auth.token!).getEserciziScheda(schedaId);
+});

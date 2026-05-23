@@ -1,15 +1,13 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../database/archivio_locale.dart';
+import '../../models/scheda_remota.dart';
 import '../../stato/fornitori.dart';
 import '../../ui/app_ui.dart';
-import '../esercizi/pagina_esercizi.dart';
 import 'pagina_dettaglio_scheda.dart';
-import 'pagina_editor_scheda.dart';
 
-enum FiltroSchede { tutte, attive, modelli }
+enum FiltroSchede { tutte, attive }
 
 class PaginaSchede extends ConsumerStatefulWidget {
   const PaginaSchede({super.key});
@@ -25,17 +23,9 @@ class _PaginaSchedeState extends ConsumerState<PaginaSchede> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
-    final archivio = ref.watch(fornitoreArchivioLocale);
-
-    final soloAttive = filtro == FiltroSchede.attive;
-    final soloModelli = filtro == FiltroSchede.modelli;
+    final schedeAsync = ref.watch(fornitoreSchedeRemote);
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _apriNuovaScheda(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Nuova scheda'),
-      ),
       body: Stack(
         children: [
           const _SchedeBackground(),
@@ -51,9 +41,10 @@ class _PaginaSchedeState extends ConsumerState<PaginaSchede> {
                 expandedHeight: 152,
                 actions: [
                   IconButton(
-                    onPressed: () => _apriEsercizi(context),
-                    icon: const Icon(Icons.fitness_center),
-                    tooltip: 'Esercizi',
+                    onPressed: () =>
+                        ref.read(fornitoreSchedeRemote.notifier).ricarica(),
+                    icon: const Icon(Icons.refresh),
+                    tooltip: 'Aggiorna',
                   ),
                   const SizedBox(width: 6),
                 ],
@@ -82,7 +73,7 @@ class _PaginaSchedeState extends ConsumerState<PaginaSchede> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Organizza allenamenti, modelli e routine.',
+                            'Le schede assegnate al tuo account.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: c.onSurface.withOpacity(0.72),
                               fontWeight: FontWeight.w700,
@@ -95,7 +86,6 @@ class _PaginaSchedeState extends ConsumerState<PaginaSchede> {
                 ),
               ),
 
-              // Filtro (segmented) dentro card
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
@@ -115,15 +105,53 @@ class _PaginaSchedeState extends ConsumerState<PaginaSchede> {
                 ),
               ),
 
-              StreamBuilder<List<SchedeData>>(
-                stream: archivio.guardaSchede(
-                  soloAttive: soloAttive,
-                  soloModelli: soloModelli,
+              schedeAsync.when(
+                loading: () => const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
                 ),
-                builder: (context, snapshot) {
-                  final schede = snapshot.data ?? [];
+                error: (e, _) => SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.cloud_off,
+                              size: 38, color: c.error.withOpacity(0.7)),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            'Impossibile caricare le schede',
+                            style: theme.textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            e.toString().replaceFirst('Exception: ', ''),
+                            style: theme.textTheme.bodySmall,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          AppButton(
+                            label: 'Riprova',
+                            icon: Icons.refresh,
+                            onPressed: () => ref
+                                .read(fornitoreSchedeRemote.notifier)
+                                .ricarica(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                data: (schede) {
+                  final filtrate = filtro == FiltroSchede.attive
+                      ? schede.where((s) => s.attiva).toList()
+                      : schede;
 
-                  if (schede.isEmpty) {
+                  if (filtrate.isEmpty) {
                     return SliverFillRemaining(
                       hasScrollBody: false,
                       child: Center(
@@ -150,15 +178,11 @@ class _PaginaSchedeState extends ConsumerState<PaginaSchede> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Crea una scheda o passa su “Tutte/Modelli”.',
+                                  filtro == FiltroSchede.attive
+                                      ? 'Non hai schede attive. Passa su "Tutte" per vedere tutte le schede.'
+                                      : 'Nessuna scheda assegnata al tuo account.',
                                   style: theme.textTheme.bodySmall,
                                   textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                AppButton(
-                                  label: 'Crea scheda',
-                                  icon: Icons.add,
-                                  onPressed: () => _apriNuovaScheda(context),
                                 ),
                               ],
                             ),
@@ -176,17 +200,16 @@ class _PaginaSchedeState extends ConsumerState<PaginaSchede> {
                       120,
                     ),
                     sliver: SliverList.builder(
-                      itemCount: schede.length,
+                      itemCount: filtrate.length,
                       itemBuilder: (context, index) {
-                        final scheda = schede[index];
-
+                        final scheda = filtrate[index];
                         return _SchedaTile(
                           scheda: scheda,
-                          onTap: () => _apriDettaglioScheda(context, scheda.id),
+                          onTap: () => _apriDettaglio(context, scheda),
                         ).animate().fadeIn(
-                          duration: 320.ms,
-                          delay: (28 * index).ms,
-                        );
+                              duration: 320.ms,
+                              delay: (28 * index).ms,
+                            );
                       },
                     ),
                   );
@@ -199,23 +222,11 @@ class _PaginaSchedeState extends ConsumerState<PaginaSchede> {
     );
   }
 
-  void _apriDettaglioScheda(BuildContext context, int idScheda) {
+  void _apriDettaglio(BuildContext context, SchedaRemota scheda) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PaginaDettaglioScheda(schedaId: idScheda),
+        builder: (_) => PaginaDettaglioScheda(scheda: scheda),
       ),
-    );
-  }
-
-  void _apriNuovaScheda(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const PaginaEditorScheda()),
-    );
-  }
-
-  void _apriEsercizi(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const PaginaEsercizi()),
     );
   }
 }
@@ -234,8 +245,10 @@ class _SchedeBackground extends StatelessWidget {
       c.background,
     );
 
-    final tintTop = Color.alphaBlend(c.primary.withOpacity(isDark ? 0.08 : 0.05), base);
-    final tintBottom = Color.alphaBlend(c.secondary.withOpacity(isDark ? 0.06 : 0.04), base);
+    final tintTop =
+        Color.alphaBlend(c.primary.withOpacity(isDark ? 0.08 : 0.05), base);
+    final tintBottom =
+        Color.alphaBlend(c.secondary.withOpacity(isDark ? 0.06 : 0.04), base);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -264,20 +277,6 @@ class _SchedeBackground extends StatelessWidget {
             color: c.tertiary,
             size: isDark ? 400 : 420,
             opacity: isDark ? 0.08 : 0.05,
-          ),
-          IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.transparent,
-                    base.withOpacity(isDark ? 0.30 : 0.14),
-                  ],
-                  radius: 1.10,
-                  center: Alignment.topCenter,
-                ),
-              ),
-            ),
           ),
         ],
       ),
@@ -338,7 +337,6 @@ class _FiltroSchedeSegmented extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final style = ButtonStyle(
-      // rende i segmenti più “app-like”
       padding: WidgetStateProperty.all(
         const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
@@ -355,9 +353,7 @@ class _FiltroSchedeSegmented extends StatelessWidget {
         return Colors.transparent;
       }),
       foregroundColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return c.onSurface;
-        }
+        if (states.contains(WidgetState.selected)) return c.onSurface;
         return c.onSurface.withOpacity(0.78);
       }),
       side: WidgetStateProperty.resolveWith((states) {
@@ -377,7 +373,6 @@ class _FiltroSchedeSegmented extends StatelessWidget {
       segments: const [
         ButtonSegment(value: FiltroSchede.tutte, label: Text('Tutte')),
         ButtonSegment(value: FiltroSchede.attive, label: Text('Attive')),
-        ButtonSegment(value: FiltroSchede.modelli, label: Text('Modelli')),
       ],
       selected: {value},
       onSelectionChanged: (values) => onChanged(values.first),
@@ -386,12 +381,9 @@ class _FiltroSchedeSegmented extends StatelessWidget {
 }
 
 class _SchedaTile extends StatelessWidget {
-  const _SchedaTile({
-    required this.scheda,
-    required this.onTap,
-  });
+  const _SchedaTile({required this.scheda, required this.onTap});
 
-  final SchedeData scheda;
+  final SchedaRemota scheda;
   final VoidCallback onTap;
 
   @override
@@ -425,11 +417,10 @@ class _SchedaTile extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    if (scheda.modello)
-                      _StatoPill(label: 'Modello', color: c.secondary),
                     if (scheda.attiva)
                       _StatoPill(label: 'Attiva', color: c.primary),
-                    Icon(Icons.chevron_right, color: c.onSurface.withOpacity(0.40)),
+                    Icon(Icons.chevron_right,
+                        color: c.onSurface.withOpacity(0.40)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -445,7 +436,8 @@ class _SchedaTile extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
                 Row(
                   children: [
-                    Icon(Icons.bolt_rounded, size: 18, color: c.onSurface.withOpacity(0.80)),
+                    Icon(Icons.bolt_rounded,
+                        size: 18, color: c.onSurface.withOpacity(0.80)),
                     const SizedBox(width: 8),
                     Text(
                       scheda.livelloDifficolta ?? 'Standard',

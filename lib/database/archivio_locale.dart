@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../models/scheda_remota.dart';
 import 'converter.dart';
 import 'tabelle.dart';
 
@@ -966,5 +967,67 @@ class ArchivioLocale extends _$ArchivioLocale {
 
   Future<int> creaMisura(MisurazioniCompanion dati) {
     return into(misurazioni).insert(dati);
+  }
+
+  Future<void> sincronizzaSchedaRemota({
+    required int utenteId,
+    required SchedaRemota scheda,
+    required List<EsercizioInSchedaRemota> eserciziRemoti,
+  }) async {
+    await transaction(() async {
+      await into(schede).insertOnConflictUpdate(
+        SchedeCompanion(
+          id: Value(scheda.id),
+          nomeScheda: Value(scheda.nomeScheda),
+          descrizione: Value(scheda.descrizione),
+          livelloDifficolta: Value(scheda.livelloDifficolta),
+          utenteId: Value(utenteId),
+          attiva: Value(scheda.attiva),
+          modello: const Value(false),
+          noteAllenatore: Value(scheda.noteAllenatore),
+        ),
+      );
+
+      for (final e in eserciziRemoti) {
+        await into(esercizi).insertOnConflictUpdate(
+          EserciziCompanion(
+            id: Value(e.esercizioId),
+            nome: Value(e.nomeEsercizio),
+            muscoloObiettivo: Value(e.gruppoMuscolare),
+            attrezzo: const Value(Attrezzo.altro),
+            gruppoMuscolare: Value(_parseGruppoMuscolare(e.gruppoMuscolare)),
+            urlImmagine: Value(e.immagineUrl),
+          ),
+        );
+      }
+
+      await (delete(schedeEsercizi)
+            ..where((tbl) => tbl.schedaId.equals(scheda.id)))
+          .go();
+
+      for (int i = 0; i < eserciziRemoti.length; i++) {
+        final e = eserciziRemoti[i];
+        await into(schedeEsercizi).insert(
+          SchedeEserciziCompanion.insert(
+            schedaId: scheda.id,
+            esercizioId: e.esercizioId,
+            serie: Value(e.serie),
+            ripetizioni: Value(e.ripetizioni),
+            peso: Value(e.pesoTarget),
+            sezione: Value(e.sezione),
+            ordineSezione: Value(e.giorno),
+            ordineEsercizio: Value(i),
+          ),
+        );
+      }
+    });
+  }
+
+  GruppoMuscolare _parseGruppoMuscolare(String? nome) {
+    if (nome == null) return GruppoMuscolare.pettorali;
+    return GruppoMuscolare.values.firstWhere(
+      (g) => g.name.toLowerCase() == nome.toLowerCase(),
+      orElse: () => GruppoMuscolare.pettorali,
+    );
   }
 }

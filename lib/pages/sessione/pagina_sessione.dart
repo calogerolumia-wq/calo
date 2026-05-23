@@ -2,11 +2,12 @@
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../database/archivio_locale.dart';
+import '../../models/scheda_remota.dart';
+import '../../services/schede_service.dart';
+import '../../stato/fornitori.dart';
 import '../../utils/navigazione.dart';
 import '../schede/pagina_schede.dart';
 import 'pagina_sessione_in_corso.dart';
-import '../../stato/fornitori.dart';
 
 class PaginaSessione extends ConsumerStatefulWidget {
   const PaginaSessione({super.key});
@@ -16,12 +17,43 @@ class PaginaSessione extends ConsumerStatefulWidget {
 }
 
 class _PaginaSessioneState extends ConsumerState<PaginaSessione> {
+  bool _avvioInCorso = false;
+
+  Future<void> _avviaSessioneRemota(
+    BuildContext context,
+    SchedaRemota scheda,
+  ) async {
+    if (_avvioInCorso) return;
+    setState(() => _avvioInCorso = true);
+
+    try {
+      final auth = ref.read(gestoreAutenticazione).valueOrNull;
+      if (auth == null || !auth.autenticato || auth.token == null) return;
+
+      final esercizi =
+          await SchedeService(token: auth.token!).getEserciziScheda(scheda.id);
+
+      final idSessione = await ref
+          .read(gestoreSessioneAttiva.notifier)
+          .avviaDaSchedaRemota(scheda, esercizi);
+
+      if (!mounted) return;
+      apriPagina(context, PaginaSessioneInCorso(sessioneId: idSessione));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _avvioInCorso = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final colori = tema.colorScheme;
 
-    final archivio = ref.watch(fornitoreArchivioLocale);
     final sessioneAsync = ref.watch(gestoreSessioneAttiva);
 
     return Scaffold(
@@ -84,25 +116,31 @@ class _PaginaSessioneState extends ConsumerState<PaginaSessione> {
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                     sliver: SliverToBoxAdapter(
-                      child: StreamBuilder<List<SchedeData>>(
-                        stream: archivio.guardaSchede(soloAttive: true),
-                        builder: (context, snapshot) {
-                          final schede = snapshot.data ?? [];
+                      child: ref.watch(fornitoreSchedeRemote).when(
+                        loading: () => const Padding(
+                          padding: EdgeInsets.only(top: 24),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                        error: (e, _) => _EmptyState(
+                          titolo: 'Errore caricamento schede',
+                          descrizione: e.toString().replaceFirst('Exception: ', ''),
+                          icona: Icons.cloud_off,
+                          azione: FilledButton.icon(
+                            onPressed: () => ref
+                                .read(fornitoreSchedeRemote.notifier)
+                                .ricarica(),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Riprova'),
+                          ),
+                        ),
+                        data: (schede) {
+                          final attive = schede.where((s) => s.attiva).toList();
 
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting &&
-                              schede.isEmpty) {
-                            return const Padding(
-                              padding: EdgeInsets.only(top: 24),
-                              child: Center(child: CircularProgressIndicator()),
-                            );
-                          }
-
-                          if (schede.isEmpty) {
+                          if (attive.isEmpty) {
                             return _EmptyState(
                               titolo: 'Nessuna scheda attiva',
                               descrizione:
-                              'Attiva una scheda dalla sezione “Schede” per avviare una sessione.',
+                                  'Non hai schede attive. Contatta il tuo trainer.',
                               icona: Icons.play_circle_outline,
                               azione: FilledButton.icon(
                                 onPressed: () => vaiAllaPaginaPrincipale(
@@ -128,37 +166,25 @@ class _PaginaSessioneState extends ConsumerState<PaginaSessione> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              ...List.generate(schede.length, (index) {
-                                final scheda = schede[index];
-                                return _RigaScheda(
-                                  nome: scheda.nomeScheda,
-                                  descrizione: scheda.descrizione ??
-                                      'Allenamento personalizzato',
-                                  onTap: () async {
-                                    final idSessione = await ref
-                                        .read(gestoreSessioneAttiva.notifier)
-                                        .avviaDaScheda(scheda.id);
-
-                                    if (!mounted) return;
-                                    apriPagina(
-                                      context,
-                                      PaginaSessioneInCorso(
-                                        sessioneId: idSessione,
-                                      ),
-                                    );
-                                  },
+                              ...List.generate(attive.length, (index) {
+                                final scheda = attive[index];
+                                return _RigaSchedaRemota(
+                                  scheda: scheda,
+                                  inCaricamento: _avvioInCorso,
+                                  onTap: () =>
+                                      _avviaSessioneRemota(context, scheda),
                                 )
                                     .animate()
                                     .fadeIn(
-                                  duration: 220.ms,
-                                  delay: (40 * index).ms,
-                                )
+                                      duration: 220.ms,
+                                      delay: (40 * index).ms,
+                                    )
                                     .slideY(
-                                  begin: 0.06,
-                                  end: 0,
-                                  duration: 220.ms,
-                                  delay: (40 * index).ms,
-                                );
+                                      begin: 0.06,
+                                      end: 0,
+                                      duration: 220.ms,
+                                      delay: (40 * index).ms,
+                                    );
                               }),
                             ],
                           );
@@ -353,16 +379,16 @@ class _Badge extends StatelessWidget {
   }
 }
 
-class _RigaScheda extends StatelessWidget {
-  const _RigaScheda({
-    required this.nome,
-    required this.descrizione,
+class _RigaSchedaRemota extends StatelessWidget {
+  const _RigaSchedaRemota({
+    required this.scheda,
     required this.onTap,
+    required this.inCaricamento,
   });
 
-  final String nome;
-  final String descrizione;
+  final SchedaRemota scheda;
   final VoidCallback onTap;
+  final bool inCaricamento;
 
   @override
   Widget build(BuildContext context) {
@@ -374,14 +400,12 @@ class _RigaScheda extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: colori.onSurface.withOpacity(0.08),
-        ),
+        side: BorderSide(color: colori.onSurface.withOpacity(0.08)),
       ),
       child: ListTile(
-        onTap: onTap,
+        onTap: inCaricamento ? null : onTap,
         title: Text(
-          nome,
+          scheda.nomeScheda,
           style: tema.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
           ),
@@ -389,7 +413,7 @@ class _RigaScheda extends StatelessWidget {
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
-            descrizione,
+            scheda.descrizione ?? 'Allenamento personalizzato',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: tema.textTheme.bodyMedium?.copyWith(
@@ -397,12 +421,19 @@ class _RigaScheda extends StatelessWidget {
             ),
           ),
         ),
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: colori.onSurface.withOpacity(0.55),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        trailing: inCaricamento
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: colori.onSurface.withOpacity(0.55),
+              ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
   }
