@@ -2,45 +2,35 @@ import 'package:flutter/material.dart';
 
 class AppSpacing {
   static const double xxs = 4;
-  static const double xs = 8;
-  static const double sm = 12;
-  static const double md = 16;
-  static const double lg = 20;
-  static const double xl = 28;
+  static const double xs  = 8;
+  static const double sm  = 12;
+  static const double md  = 16;
+  static const double lg  = 20;
+  static const double xl  = 28;
   static const double xxl = 36;
 }
 
 class AppRadius {
-  static const double sm = 12;
-  static const double md = 16;
-  static const double lg = 22;
-  static const double xl = 28;
-  static const double xxl = 34;
+  static const double xs  = 8;
+  static const double sm  = 12;
+  static const double md  = 16;
+  static const double lg  = 20;
+  static const double xl  = 26;
+  static const double xxl = 32;
 }
 
-class AppShadow {
-  /// Shadow "premium" controllata: in dark meno aggressiva.
-  static List<BoxShadow> soft(Color shadowColor, {required Brightness brightness}) {
-    final isDark = brightness == Brightness.dark;
-
-    // In dark: meno opacità e blur più corto -> più pulito
-    final o1 = isDark ? 0.10 : 0.12;
-    final o2 = isDark ? 0.06 : 0.08;
-
-    return [
-      BoxShadow(
-        color: shadowColor.withOpacity(o1),
-        blurRadius: isDark ? 22 : 28,
-        offset: Offset(0, isDark ? 10 : 14),
-      ),
-      BoxShadow(
-        color: shadowColor.withOpacity(o2),
-        blurRadius: isDark ? 7 : 8,
-        offset: const Offset(0, 4),
-      ),
-    ];
-  }
-}
+// Ombra pulita, leggermente calda — nessun branching dark/light
+const _kShadow1 = BoxShadow(
+  color: Color(0x0F000000),
+  blurRadius: 24,
+  offset: Offset(0, 8),
+  spreadRadius: -2,
+);
+const _kShadow2 = BoxShadow(
+  color: Color(0x07000000),
+  blurRadius: 6,
+  offset: Offset(0, 2),
+);
 
 class AppCard extends StatelessWidget {
   const AppCard({
@@ -52,6 +42,7 @@ class AppCard extends StatelessWidget {
     this.radius,
     this.outlined = true,
     this.useShadow = true,
+    this.onTap,
   });
 
   final Widget child;
@@ -61,48 +52,43 @@ class AppCard extends StatelessWidget {
   final BorderRadius? radius;
   final bool outlined;
   final bool useShadow;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
+    final c = Theme.of(context).colorScheme;
     final r = radius ?? BorderRadius.circular(AppRadius.xl);
+    final bg = color ?? c.surface;
 
-    // Bordo coerente e leggibile in ogni tema
-    final borderColor = c.outline.withOpacity(isDark ? 0.55 : 0.75);
-
-    // Fondo card: surface (non background)
-    final background = color ?? c.surface;
-
-    // Se c'è gradient, faccio una "base" surface sotto per non impastare i testi
-    final baseColor = Color.alphaBlend(
-      (isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02)),
-      background,
-    );
-
-    return Container(
+    Widget card = Container(
       decoration: BoxDecoration(
         borderRadius: r,
-        boxShadow: useShadow ? AppShadow.soft(c.shadow, brightness: theme.brightness) : null,
+        color: gradient == null ? bg : null,
+        gradient: gradient,
+        border: outlined ? Border.all(color: c.outline, width: 1) : null,
+        boxShadow: useShadow ? const [_kShadow1, _kShadow2] : null,
       ),
       child: ClipRRect(
         borderRadius: r,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: gradient == null ? baseColor : baseColor,
-            gradient: gradient,
-            borderRadius: r,
-            border: outlined ? Border.all(color: borderColor, width: 1) : null,
-          ),
-          child: Padding(
-            padding: padding ?? const EdgeInsets.all(AppSpacing.lg),
-            child: child,
-          ),
+        child: Padding(
+          padding: padding ?? const EdgeInsets.all(AppSpacing.lg),
+          child: child,
         ),
       ),
     );
+
+    if (onTap != null) {
+      card = Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: r,
+          child: card,
+        ),
+      );
+    }
+
+    return card;
   }
 }
 
@@ -114,6 +100,7 @@ class AppButton extends StatelessWidget {
     this.onPressed,
     this.filled = true,
     this.expand = false,
+    this.small = false,
   });
 
   final String label;
@@ -121,60 +108,81 @@ class AppButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool filled;
   final bool expand;
+  final bool small;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
 
-    final baseStyle = ButtonStyle(
-      padding: WidgetStateProperty.all(
-        const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 14),
-      ),
-      shape: WidgetStateProperty.all(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
-      ),
-      textStyle: WidgetStateProperty.all(
-        theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
-      ),
+    final vPad = small ? 10.0 : 14.0;
+    final hPad = small ? 16.0 : 22.0;
+    final fontSize = small ? 13.0 : 15.0;
+    const radius = 14.0;
+
+    final shape = WidgetStateProperty.all(
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
+    );
+    final padding = WidgetStateProperty.all(
+      EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
+    );
+    final textStyle = WidgetStateProperty.all(
+      theme.textTheme.labelLarge?.copyWith(fontSize: fontSize, fontWeight: FontWeight.w700),
     );
 
-    final style = filled
-        ? baseStyle.copyWith(
-      backgroundColor: WidgetStateProperty.all(c.primary),
-      foregroundColor: WidgetStateProperty.all(c.onPrimary),
-      overlayColor: WidgetStateProperty.all(c.onPrimary.withOpacity(0.08)),
-      elevation: WidgetStateProperty.all(0),
-    )
-        : baseStyle.copyWith(
-      backgroundColor: WidgetStateProperty.all(Colors.transparent),
-      foregroundColor: WidgetStateProperty.all(c.onSurface),
-      side: WidgetStateProperty.all(
-        BorderSide(color: c.outline.withOpacity(0.9), width: 1),
-      ),
-      overlayColor: WidgetStateProperty.all(c.primary.withOpacity(0.08)),
-    );
+    final ButtonStyle style;
+    if (filled) {
+      style = ButtonStyle(
+        padding: padding,
+        shape: shape,
+        textStyle: textStyle,
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return c.onSurface.withOpacity(0.12);
+          }
+          return c.primary;
+        }),
+        foregroundColor: WidgetStateProperty.all(c.onPrimary),
+        overlayColor: WidgetStateProperty.all(Colors.white.withOpacity(0.12)),
+        elevation: WidgetStateProperty.all(0),
+        surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+      );
+    } else {
+      style = ButtonStyle(
+        padding: padding,
+        shape: shape,
+        textStyle: textStyle,
+        backgroundColor: WidgetStateProperty.all(Colors.transparent),
+        foregroundColor: WidgetStateProperty.all(c.onSurface),
+        side: WidgetStateProperty.all(BorderSide(color: c.outline, width: 1.5)),
+        overlayColor: WidgetStateProperty.all(c.primary.withOpacity(0.06)),
+        elevation: WidgetStateProperty.all(0),
+      );
+    }
 
-    final Widget button = icon == null
-        ? (filled
-        ? FilledButton(onPressed: onPressed, style: style, child: Text(label))
-        : OutlinedButton(onPressed: onPressed, style: style, child: Text(label)))
-        : (filled
-        ? FilledButton.icon(
-      onPressed: onPressed,
-      style: style,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-    )
-        : OutlinedButton.icon(
-      onPressed: onPressed,
-      style: style,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-    ));
+    Widget btn;
+    if (icon != null) {
+      btn = filled
+          ? FilledButton.icon(
+              onPressed: onPressed,
+              style: style,
+              icon: Icon(icon, size: small ? 16 : 18),
+              label: Text(label),
+            )
+          : OutlinedButton.icon(
+              onPressed: onPressed,
+              style: style,
+              icon: Icon(icon, size: small ? 16 : 18),
+              label: Text(label),
+            );
+    } else {
+      btn = filled
+          ? FilledButton(onPressed: onPressed, style: style, child: Text(label))
+          : OutlinedButton(onPressed: onPressed, style: style, child: Text(label));
+    }
 
-    if (!expand) return button;
-    return SizedBox(width: double.infinity, child: button);
+    if (!expand) return btn;
+    return SizedBox(width: double.infinity, child: btn);
   }
 }
 
@@ -182,12 +190,12 @@ class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     this.trailing,
   });
 
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final Widget? trailing;
 
   @override
@@ -196,7 +204,7 @@ class SectionHeader extends StatelessWidget {
     final c = theme.colorScheme;
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Column(
@@ -205,28 +213,26 @@ class SectionHeader extends StatelessWidget {
               Text(
                 title,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -0.2,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                // Secondario ma leggibile: NON onSurfaceVariant fisso
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: c.onSurface.withOpacity(0.72),
-                  fontWeight: FontWeight.w600,
+              if (subtitle != null) ...[
+                const SizedBox(height: 3),
+                Text(
+                  subtitle!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: c.onSurface.withOpacity(0.54),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
         if (trailing != null) ...[
           const SizedBox(width: AppSpacing.sm),
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: trailing!,
-          ),
+          trailing!,
         ],
       ],
     );
@@ -251,7 +257,6 @@ class StatPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final tone = accent ?? c.primary;
 
     return AppCard(
@@ -261,12 +266,12 @@ class StatPill extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: tone.withOpacity(isDark ? 0.18 : 0.14),
+              color: tone.withOpacity(0.10),
               borderRadius: BorderRadius.circular(AppRadius.sm),
-              border: Border.all(color: tone.withOpacity(isDark ? 0.28 : 0.20)),
+              border: Border.all(color: tone.withOpacity(0.18)),
             ),
             child: Icon(icon, color: tone, size: 20),
           ),
@@ -277,20 +282,19 @@ class StatPill extends StatelessWidget {
             child: Text(
               value,
               style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 letterSpacing: -0.4,
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             label,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            // usa lo stile già leggibile (no override onSurfaceVariant)
             style: theme.textTheme.bodySmall?.copyWith(
-              color: c.onSurface.withOpacity(0.72),
-              fontWeight: FontWeight.w600,
+              color: c.onSurface.withOpacity(0.54),
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -304,16 +308,18 @@ class AppInlineBanner extends StatelessWidget {
     super.key,
     required this.message,
     this.icon = Icons.wifi_off_rounded,
+    this.tone,
   });
 
   final String message;
   final IconData icon;
+  final Color? tone;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final color = tone ?? c.error;
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -321,23 +327,20 @@ class AppInlineBanner extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: Color.alphaBlend(
-          c.error.withOpacity(isDark ? 0.16 : 0.10),
-          c.surfaceVariant,
-        ),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: c.error.withOpacity(isDark ? 0.40 : 0.28)),
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: color.withOpacity(0.22)),
       ),
       child: Row(
         children: [
-          Icon(icon, color: c.error, size: 18),
+          Icon(icon, color: color, size: 17),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               message,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: c.onSurface,
-                fontWeight: FontWeight.w700,
+                color: c.onSurface.withOpacity(0.80),
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -363,54 +366,44 @@ class AppSkeleton extends StatefulWidget {
   State<AppSkeleton> createState() => _AppSkeletonState();
 }
 
-class _AppSkeletonState extends State<AppSkeleton> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _animation;
+class _AppSkeletonState extends State<AppSkeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1100),
     )..repeat(reverse: true);
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Skeleton ben visibile in entrambi i temi
-    final base = isDark
-        ? c.surfaceVariant.withOpacity(0.75)
-        : c.surfaceVariant.withOpacity(0.90);
-
-    final highlight = isDark
-        ? c.surfaceVariant.withOpacity(0.45)
-        : c.surfaceVariant.withOpacity(0.60);
-
+    final c = Theme.of(context).colorScheme;
     return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        final color = Color.lerp(base, highlight, _animation.value)!;
-        return Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(widget.radius),
+      animation: _anim,
+      builder: (_, __) => Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: Color.lerp(
+            c.surfaceVariant,
+            c.outline.withOpacity(0.5),
+            _anim.value,
           ),
-        );
-      },
+          borderRadius: BorderRadius.circular(widget.radius),
+        ),
+      ),
     );
   }
 }

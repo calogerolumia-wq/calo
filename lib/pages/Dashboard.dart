@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -9,7 +8,6 @@ import '../database/archivio_locale.dart';
 import '../stato/fornitori.dart';
 import '../ui/app_drawer.dart';
 import '../ui/app_ui.dart';
-import '../utils/immagini_esercizi.dart';
 import 'Impostazioni.dart';
 import 'calendario/pagina_calendario_allenamenti.dart';
 import 'esercizi/pagina_esercizi.dart';
@@ -27,33 +25,16 @@ class PaginaDashboard extends ConsumerWidget {
       drawer: const AppDrawer(),
       body: Stack(
         children: [
-          const _DashboardBackground(),
+          const _Background(),
           CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              const SliverToBoxAdapter(child: _DashboardHeader()),
-
-              _sliverSection(const _HeroCta(), bottom: AppSpacing.md),
-
-              // ✅ GRID principale: Schede / Esercizi / Calendario / Misure
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  0,
-                  AppSpacing.lg,
-                  AppSpacing.lg,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: _QuickActionsGrid(),
-                ),
-              ),
-
-              // ✅ Progressi sotto la grid (grande)
-              _sliverSection(const _ProgressModule()),
-
-              // ✅ Moduli “migliori”
-              _sliverSection(const _CalendarioMigliorato()),
-              _sliverSection(const _MisureMigliorate(), bottom: 90),
+              const SliverToBoxAdapter(child: _Header()),
+              _pad(const _HeroCta(), bottom: AppSpacing.md),
+              _pad(const _QuickActions(), bottom: AppSpacing.lg),
+              _pad(const _ProgressModule()),
+              _pad(const _CalendarioModule()),
+              _pad(const _MisureModule(), bottom: 96),
             ],
           ),
         ],
@@ -61,179 +42,76 @@ class PaginaDashboard extends ConsumerWidget {
     );
   }
 
-  static SliverPadding _sliverSection(
-      Widget child, {
-        double top = 0,
-        double bottom = AppSpacing.lg,
-      }) {
+  static SliverPadding _pad(Widget child, {double bottom = AppSpacing.lg}) {
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(AppSpacing.lg, top, AppSpacing.lg, bottom),
+      padding: EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, bottom),
       sliver: SliverToBoxAdapter(child: child),
     );
   }
 }
 
-class _DashboardBackground extends StatelessWidget {
-  const _DashboardBackground();
+// ─── Background ──────────────────────────────────────────────────────────────
+
+class _Background extends StatelessWidget {
+  const _Background();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    // In dark: schiarisco leggermente con surface per non “chiudere” tutto
-    final base = Color.alphaBlend(
-      Colors.white.withOpacity(isDark ? 0.02 : 0.00),
-      c.background,
-    );
-
-    final tintTop = Color.alphaBlend(
-      c.primary.withOpacity(isDark ? 0.08 : 0.06),
-      base,
-    );
-
-    final tintBottom = Color.alphaBlend(
-      c.secondary.withOpacity(isDark ? 0.06 : 0.05),
-      base,
-    );
-
+    final c = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [tintTop, base, tintBottom],
+          colors: [
+            Color.alphaBlend(c.primary.withOpacity(0.04), c.background),
+            c.background,
+            Color.alphaBlend(c.tertiary.withOpacity(0.03), c.background),
+          ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-        ),
-      ),
-      child: Stack(
-        children: [
-          _GlowBlob(
-            alignment: const Alignment(-0.95, -0.85),
-            color: c.primary,
-            size: isDark ? 330 : 360,
-            opacity: isDark ? 0.12 : 0.09,
-          ),
-          _GlowBlob(
-            alignment: const Alignment(0.95, -0.65),
-            color: c.secondary,
-            size: isDark ? 290 : 320,
-            opacity: isDark ? 0.10 : 0.08,
-          ),
-          _GlowBlob(
-            alignment: const Alignment(0.20, 1.05),
-            color: c.tertiary,
-            size: isDark ? 360 : 420,
-            opacity: isDark ? 0.08 : 0.06,
-          ),
-
-          // vignette leggera
-          IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.transparent,
-                    base.withOpacity(isDark ? 0.30 : 0.14),
-                  ],
-                  radius: 1.10,
-                  center: Alignment.topCenter,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GlowBlob extends StatelessWidget {
-  const _GlowBlob({
-    required this.alignment,
-    required this.color,
-    required this.size,
-    required this.opacity,
-  });
-
-  final Alignment alignment;
-  final Color color;
-  final double size;
-  final double opacity;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: alignment,
-      child: IgnorePointer(
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                color.withOpacity(opacity),
-                color.withOpacity(0.0),
-              ],
-              stops: const [0.0, 1.0],
-            ),
-          ),
+          stops: const [0.0, 0.45, 1.0],
         ),
       ),
     );
   }
 }
 
-class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader();
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+class _Header extends StatelessWidget {
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final now = DateTime.now();
 
     return SafeArea(
       bottom: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.md,
-        ),
+            AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
         child: Row(
           children: [
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => Scaffold.of(context).openDrawer(),
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                child: Ink(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    gradient: LinearGradient(
-                      colors: [
-                        c.primary.withOpacity(0.95),
-                        c.secondary.withOpacity(0.95),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+            // Logo / drawer button
+            GestureDetector(
+              onTap: () => Scaffold.of(context).openDrawer(),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: c.primary,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  boxShadow: [
+                    BoxShadow(
+                      color: c.primary.withOpacity(0.28),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: c.primary.withOpacity(isDark ? 0.14 : 0.10),
-                        blurRadius: 18,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Icon(Icons.fitness_center, color: c.onPrimary, size: 22),
+                  ],
                 ),
+                child: Icon(Icons.fitness_center_rounded,
+                    color: c.onPrimary, size: 22),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -243,29 +121,27 @@ class _DashboardHeader extends StatelessWidget {
                 children: [
                   Text(
                     _saluto(now),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
                       letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
-                    'Oggi • ${_formattaDataBreve(now)}',
+                    _formattaDataBreve(now),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: c.onSurface.withOpacity(0.72),
-                      fontWeight: FontWeight.w700,
+                      color: c.onSurface.withOpacity(0.50),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
             ),
-            _HeaderIconButton(
+            _CircleButton(
               icon: Icons.settings_outlined,
-              onTap: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(builder: (_) => const Impostazioni()),
-                );
-              },
+              onTap: () => Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(builder: (_) => const Impostazioni()),
+              ),
             ),
           ],
         ),
@@ -274,81 +150,66 @@ class _DashboardHeader extends StatelessWidget {
   }
 }
 
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.icon, required this.onTap});
-
+class _CircleButton extends StatelessWidget {
+  const _CircleButton({required this.icon, required this.onTap});
   final IconData icon;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Ink(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: c.surface.withOpacity(isDark ? 0.92 : 1.0),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: c.outline.withOpacity(isDark ? 0.55 : 0.80)),
-            boxShadow: [
-              BoxShadow(
-                color: c.shadow.withOpacity(isDark ? 0.10 : 0.06),
-                blurRadius: 14,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Icon(icon, color: c.onSurface),
+    final c = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: c.surface,
+          shape: BoxShape.circle,
+          border: Border.all(color: c.outline, width: 1),
+          boxShadow: const [_kShadow1],
         ),
+        child: Icon(icon, color: c.onSurface, size: 20),
       ),
     );
   }
 }
+
+const _kShadow1 = BoxShadow(
+  color: Color(0x0D000000),
+  blurRadius: 16,
+  offset: Offset(0, 5),
+);
+
+// ─── Hero CTA ─────────────────────────────────────────────────────────────────
 
 class _HeroCta extends ConsumerWidget {
   const _HeroCta();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    final archivio = ref.watch(fornitoreArchivioLocale);
     final sessioneAsync = ref.watch(gestoreSessioneAttiva);
-
-    final heroGradient = LinearGradient(
-      colors: [
-        Color.alphaBlend(c.primary.withOpacity(isDark ? 0.14 : 0.10), c.surface),
-        Color.alphaBlend(c.secondary.withOpacity(isDark ? 0.10 : 0.07), c.surface),
-      ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
-
-    return AppCard(
-      gradient: heroGradient,
-      child: sessioneAsync.when(
-        loading: () => const _HeroSkeleton(),
-        error: (_, __) => const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppInlineBanner(message: 'Offline: impossibile caricare la sessione attiva.'),
-          ],
-        ),
-        data: (sessione) {
-          if (sessione != null) return _HeroInCorso(sessione: sessione);
-          return _HeroPronto(archivio: archivio);
-        },
+    return sessioneAsync.when(
+      loading: () => _heroCard(context, child: const _HeroSkeleton()),
+      error: (_, __) => _heroCard(
+        context,
+        child: const AppInlineBanner(
+            message: 'Connessione assente: sessione non disponibile.'),
       ),
-    ).animate().fadeIn(duration: 240.ms).slideY(begin: 0.05, end: 0);
+      data: (sessione) => _heroCard(
+        context,
+        child: sessione != null
+            ? _HeroInCorso(sessione: sessione)
+            : const _HeroPronto(),
+      ),
+    ).animate().fadeIn(duration: 260.ms).slideY(begin: 0.04, end: 0);
+  }
+
+  Widget _heroCard(BuildContext context, {required Widget child}) {
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: child,
+    );
   }
 }
 
@@ -357,16 +218,17 @@ class _HeroSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        AppSkeleton(width: 120, height: 22),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AppSkeleton(width: 80, height: 26, radius: 999),
         SizedBox(height: AppSpacing.sm),
-        AppSkeleton(width: 220, height: 26),
+        AppSkeleton(width: 220, height: 30),
         SizedBox(height: AppSpacing.xs),
-        AppSkeleton(width: 180, height: 16),
+        AppSkeleton(width: 160, height: 18),
         SizedBox(height: AppSpacing.md),
-        AppSkeleton(width: double.infinity, height: 48, radius: AppRadius.lg),
+        AppSkeleton(width: double.infinity, height: 50, radius: AppRadius.md),
       ],
     );
   }
@@ -374,7 +236,6 @@ class _HeroSkeleton extends StatelessWidget {
 
 class _HeroInCorso extends StatelessWidget {
   const _HeroInCorso({required this.sessione});
-
   final SessioniAllenamentoData sessione;
 
   @override
@@ -384,86 +245,99 @@ class _HeroInCorso extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _StatusPill(label: 'IN CORSO', color: c.primary, icon: Icons.bolt),
+        _StatusTag(label: 'IN CORSO', color: c.primary),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Continua allenamento',
-          style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+          'Sessione attiva',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
-          'Avviato alle ${_formattaOrario(sessione.inizio)}',
+          'Avviata alle ${_formattaOrario(sessione.inizio)}',
           style: theme.textTheme.bodySmall,
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.lg),
         AppButton(
           label: 'Riprendi sessione',
-          icon: Icons.play_arrow,
+          icon: Icons.play_arrow_rounded,
           expand: true,
-          onPressed: () {
-            Navigator.of(context, rootNavigator: true).push(
-              MaterialPageRoute(
-                builder: (_) => PaginaSessioneInCorso(sessioneId: sessione.id),
-              ),
-            );
-          },
+          onPressed: () => Navigator.of(context, rootNavigator: true).push(
+            MaterialPageRoute(
+              builder: (_) => PaginaSessioneInCorso(sessioneId: sessione.id),
+            ),
+          ),
         ),
       ],
     );
   }
 }
 
-class _HeroPronto extends StatelessWidget {
-  const _HeroPronto({required this.archivio});
-  final ArchivioLocale archivio;
+class _HeroPronto extends ConsumerWidget {
+  const _HeroPronto();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
+    final schedeAsync = ref.watch(fornitoreSchedeRemote);
 
-    return StreamBuilder<List<SchedeData>>(
-      stream: archivio.guardaSchede(soloAttive: true),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return const AppInlineBanner(message: 'Offline: schede non disponibili.');
-        }
-
-        final schede = snapshot.data ?? [];
-        if (snapshot.connectionState == ConnectionState.waiting && schede.isEmpty) {
-          return const _HeroSkeleton();
-        }
-
+    return schedeAsync.when(
+      loading: () => const _HeroSkeleton(),
+      error: (_, __) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _StatusTag(label: 'PRONTO', color: c.tertiary),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Allenamento libero',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          AppButton(
+            label: 'Avvia allenamento',
+            icon: Icons.play_arrow_rounded,
+            expand: true,
+            onPressed: () => Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(builder: (_) => const PaginaSessione()),
+            ),
+          ),
+        ],
+      ),
+      data: (schede) {
         if (schede.isEmpty) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _StatusPill(label: 'RIPOSO', color: c.secondary, icon: Icons.self_improvement),
+              _StatusTag(label: 'NESSUNA SCHEDA', color: c.secondary),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Crea la tua prima scheda',
-                style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                'Inizia da qui',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                ),
               ),
               const SizedBox(height: 6),
-              Text(
-                'Definisci il tuo piano e inizia ad allenarti.',
-                style: theme.textTheme.bodySmall,
-              ),
-              const SizedBox(height: AppSpacing.md),
+              Text('Sfoglia le schede disponibili per te.',
+                  style: theme.textTheme.bodySmall),
+              const SizedBox(height: AppSpacing.lg),
               AppButton(
-                label: 'Crea scheda',
-                icon: Icons.add,
+                label: 'Vai alle schede',
+                icon: Icons.view_agenda_outlined,
                 expand: true,
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    MaterialPageRoute(builder: (_) => const PaginaSchede()),
-                  );
-                },
+                onPressed: () => Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(builder: (_) => const PaginaSchede()),
+                ),
               ),
             ],
           );
@@ -472,99 +346,35 @@ class _HeroPronto extends StatelessWidget {
         final scheda = schede.first;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _StatusPill(label: 'PRONTO', color: c.primary, icon: Icons.check_circle),
+            _StatusTag(label: 'PRONTO', color: c.tertiary),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Allenamento pronto',
-              style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 6),
-            Text(
               scheda.nomeScheda,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
-            _FocusScheda(archivio: archivio, schedaId: scheda.id),
-            const SizedBox(height: AppSpacing.md),
+            if (scheda.descrizione != null && scheda.descrizione!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                scheda.descrizione!,
+                style: theme.textTheme.bodySmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
             AppButton(
               label: 'Avvia allenamento',
-              icon: Icons.play_arrow,
+              icon: Icons.play_arrow_rounded,
               expand: true,
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(builder: (_) => const PaginaSessione()),
-                );
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _SuggerimentoEsercizio(archivio: archivio),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _SuggerimentoEsercizio extends StatelessWidget {
-  const _SuggerimentoEsercizio({required this.archivio});
-  final ArchivioLocale archivio;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final c = theme.colorScheme;
-
-    return StreamBuilder<List<EserciziData>>(
-      stream: archivio.guardaEsercizi(),
-      builder: (context, snapshot) {
-        final esercizi = snapshot.data ?? [];
-        if (esercizi.isEmpty) return const SizedBox.shrink();
-
-        final esercizio = esercizi.first;
-        final percorso = percorsoImmagineEsercizio(esercizio);
-        final usaAsset = immagineEAsset(percorso);
-
-        Widget fallback() => Container(
-          width: 46,
-          height: 46,
-          color: c.surfaceVariant,
-          child: Icon(Icons.image, color: c.onSurface.withOpacity(0.75)),
-        );
-
-        final immagine = usaAsset
-            ? Image.asset(
-          percorso,
-          width: 46,
-          height: 46,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => fallback(),
-        )
-            : Image.file(
-          File(percorso),
-          width: 46,
-          height: 46,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => fallback(),
-        );
-
-        return Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              child: immagine,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                'Esercizio suggerito: ${esercizio.nome}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
+              onPressed: () => Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(builder: (_) => const PaginaSessione()),
               ),
             ),
           ],
@@ -574,137 +384,98 @@ class _SuggerimentoEsercizio extends StatelessWidget {
   }
 }
 
-class _FocusScheda extends StatelessWidget {
-  const _FocusScheda({required this.archivio, required this.schedaId});
-  final ArchivioLocale archivio;
-  final int schedaId;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return StreamBuilder<List<EsercizioInScheda>>(
-      stream: archivio.guardaEserciziScheda(schedaId),
-      builder: (context, snapshot) {
-        final elementi = snapshot.data ?? [];
-        final focus = elementi.isEmpty
-            ? 'Focus principale'
-            : _normalizzaSezione(elementi.first.sezione);
-
-        return Text('Focus: $focus', style: theme.textTheme.bodySmall);
-      },
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({
-    required this.label,
-    required this.color,
-    required this.icon,
-  });
-
+class _StatusTag extends StatelessWidget {
+  const _StatusTag({required this.label, required this.color});
   final String label;
   final Color color;
-  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.18 : 0.14),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(isDark ? 0.45 : 0.35)),
+        color: color.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.22)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 14),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: color,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
             ),
-          ),
-        ],
       ),
     );
   }
 }
 
-/// ✅ Grid tap principali (niente più “metriche rapide”)
-class _QuickActionsGrid extends StatelessWidget {
-  _QuickActionsGrid();
+// ─── Quick Actions ────────────────────────────────────────────────────────────
 
-  void _open(BuildContext context, Widget page) {
-    Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (_) => page));
+class _QuickActions extends StatelessWidget {
+  const _QuickActions();
+
+  void _apri(BuildContext context, Widget page) {
+    Navigator.of(context, rootNavigator: true)
+        .push(MaterialPageRoute(builder: (_) => page));
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final c = theme.colorScheme;
+
     final items = <_ActionItem>[
       _ActionItem(
         title: 'Schede',
-        subtitle: 'Piani e modelli',
-        icon: Icons.view_agenda,
-        onTap: () => _open(context, const PaginaSchede()),
+        subtitle: 'Piani',
+        icon: Icons.view_agenda_outlined,
+        color: c.primary,
+        onTap: () => _apri(context, const PaginaSchede()),
       ),
       _ActionItem(
         title: 'Esercizi',
-        subtitle: 'Database',
-        icon: Icons.list_alt,
-        onTap: () => _open(context, const PaginaEsercizi()),
+        subtitle: 'Catalogo',
+        icon: Icons.bolt_outlined,
+        color: const Color(0xFF7C3AED),
+        onTap: () => _apri(context, const PaginaEsercizi()),
       ),
       _ActionItem(
         title: 'Calendario',
         subtitle: 'Sessioni',
-        icon: Icons.calendar_month,
-        onTap: () => _open(context, const PaginaCalendarioAllenamenti()),
+        icon: Icons.calendar_month_outlined,
+        color: const Color(0xFF0EA5E9),
+        onTap: () => _apri(context, const PaginaCalendarioAllenamenti()),
       ),
       _ActionItem(
         title: 'Misure',
         subtitle: 'Check-in',
         icon: Icons.monitor_weight_outlined,
-        onTap: () => _open(context, const PaginaMisure()),
+        color: c.tertiary,
+        onTap: () => _apri(context, const PaginaMisure()),
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final w = constraints.maxWidth;
-        final spacing = AppSpacing.sm;
-        final crossAxisCount = w < 360 ? 2 : 2; // phone: 2x2 pulito
-        final tileWidth = (w - (crossAxisCount - 1) * spacing) / crossAxisCount;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(
-              title: 'Dashboard',
-              subtitle: 'Vai dritto al punto.',
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Wrap(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(title: 'Accesso rapido', subtitle: null),
+        const SizedBox(height: AppSpacing.md),
+        LayoutBuilder(
+          builder: (_, constraints) {
+            final spacing = AppSpacing.sm;
+            final w = (constraints.maxWidth - spacing) / 2;
+            return Wrap(
               spacing: spacing,
               runSpacing: spacing,
               children: items
-                  .map((it) => SizedBox(
-                width: tileWidth,
-                child: _ActionTile(item: it),
-              ))
+                  .map((it) => SizedBox(width: w, child: _ActionTile(item: it)))
                   .toList(),
-            ),
-          ],
-        ).animate().fadeIn(duration: 220.ms).slideY(begin: 0.04, end: 0);
-      },
-    );
+            );
+          },
+        ),
+      ],
+    ).animate().fadeIn(duration: 240.ms, delay: 40.ms).slideY(begin: 0.04, end: 0);
   }
 }
 
@@ -713,12 +484,13 @@ class _ActionItem {
     required this.title,
     required this.subtitle,
     required this.icon,
+    required this.color,
     required this.onTap,
   });
-
   final String title;
   final String subtitle;
   final IconData icon;
+  final Color color;
   final VoidCallback onTap;
 }
 
@@ -730,81 +502,53 @@ class _ActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
-    final borderGlow = LinearGradient(
-      colors: [
-        c.primary.withOpacity(isDark ? 0.55 : 0.45),
-        c.secondary.withOpacity(isDark ? 0.40 : 0.30),
-      ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: item.onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: borderGlow,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(1.4),
-            child: AppCard(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              radius: BorderRadius.circular(AppRadius.lg - 2),
-              useShadow: true,
-              child: Stack(
-                children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: Icon(
-                      Icons.arrow_outward_rounded,
-                      size: 18,
-                      color: c.onSurface.withOpacity(0.55),
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: c.primary.withOpacity(isDark ? 0.18 : 0.14),
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                          border: Border.all(color: c.primary.withOpacity(isDark ? 0.25 : 0.20)),
-                        ),
-                        child: Icon(item.icon, color: c.primary),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ],
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      radius: BorderRadius.circular(AppRadius.lg),
+      onTap: item.onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: item.color.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Icon(item.icon, color: item.color, size: 20),
               ),
+              Icon(
+                Icons.arrow_outward_rounded,
+                size: 16,
+                color: c.onSurface.withOpacity(0.30),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            item.title,
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            item.subtitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: c.onSurface.withOpacity(0.48),
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
+
+// ─── Progress Module ──────────────────────────────────────────────────────────
 
 class _ProgressModule extends ConsumerWidget {
   const _ProgressModule();
@@ -813,20 +557,16 @@ class _ProgressModule extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final archivio = ref.watch(fornitoreArchivioLocale);
     final idUtente = ref.watch(fornitoreIdUtenteCorrente);
-
-    if (idUtente == null) {
-      return const SizedBox.shrink();
-    }
+    if (idUtente == null) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SectionHeader(
           title: 'Progressi',
-          subtitle: 'Frequenza degli ultimi allenamenti.',
+          subtitle: 'Ultime 6 settimane',
         ),
         const SizedBox(height: AppSpacing.md),
         StreamBuilder<List<SessioneCalendario>>(
@@ -837,20 +577,28 @@ class _ProgressModule extends ConsumerWidget {
             }
             if (snapshot.connectionState == ConnectionState.waiting &&
                 (snapshot.data ?? []).isEmpty) {
-              return const AppSkeleton(height: 180, radius: AppRadius.xl);
+              return const AppSkeleton(
+                  height: 160, radius: AppRadius.xl);
             }
 
             final sessioni = snapshot.data ?? [];
+
             if (sessioni.isEmpty) {
               return AppCard(
+                padding: const EdgeInsets.all(AppSpacing.xl),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(Icons.bar_chart_rounded,
+                        size: 32, color: c.onSurface.withOpacity(0.25)),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'Nessun dato disponibile',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                      'Nessun dato ancora',
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: 4),
                     Text(
                       'Completa un allenamento per vedere i tuoi trend.',
                       style: theme.textTheme.bodySmall,
@@ -858,73 +606,88 @@ class _ProgressModule extends ConsumerWidget {
                     const SizedBox(height: AppSpacing.md),
                     AppButton(
                       label: 'Avvia allenamento',
-                      icon: Icons.play_arrow,
-                      onPressed: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => const PaginaSessione()),
-                        );
-                      },
+                      icon: Icons.play_arrow_rounded,
+                      filled: false,
+                      small: true,
+                      onPressed: () =>
+                          Navigator.of(context, rootNavigator: true).push(
+                        MaterialPageRoute(
+                            builder: (_) => const PaginaSessione()),
+                      ),
                     ),
                   ],
                 ),
               );
             }
 
-            final valori = _calcolaTrendSettimanale(sessioni, 6);
-            final maxValore = max(1, valori.reduce(max));
+            final valori = _calcolaTrend(sessioni, 6);
+            final maxV = max(1, valori.reduce(max));
 
             return AppCard(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Ultime 6 settimane',
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${sessioni.length} sessioni',
+                        style: theme.textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      Text(
+                        'Ultimi 6 mesi',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.lg),
                   SizedBox(
-                    height: 150,
+                    height: 100,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
-                      children: valori.map((valore) {
-                        final h = (valore / maxValore) * 120;
+                      children: List.generate(valori.length, (i) {
+                        final v = valori[i];
+                        final h = (v / maxV) * 88;
+                        final isLast = i == valori.length - 1;
                         return Expanded(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 3),
-                            child: Stack(
-                              alignment: Alignment.bottomCenter,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                Container(
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    color: c.surfaceVariant.withOpacity(isDark ? 0.55 : 1.0),
-                                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                                    border: Border.all(
-                                      color: c.outline.withOpacity(isDark ? 0.35 : 0.55),
+                                Stack(
+                                  alignment: Alignment.bottomCenter,
+                                  children: [
+                                    Container(
+                                      height: 88,
+                                      decoration: BoxDecoration(
+                                        color: c.surfaceVariant,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 280),
-                                  curve: Curves.easeOutCubic,
-                                  height: max(8, h),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        c.primary,
-                                        c.secondary.withOpacity(0.85),
-                                      ],
-                                      begin: Alignment.bottomCenter,
-                                      end: Alignment.topCenter,
+                                    AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 350),
+                                      curve: Curves.easeOutCubic,
+                                      height: max(6.0, h),
+                                      decoration: BoxDecoration(
+                                        color: isLast
+                                            ? c.primary
+                                            : c.primary.withOpacity(0.45),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
                         );
-                      }).toList(),
+                      }),
                     ),
                   ),
                 ],
@@ -933,12 +696,14 @@ class _ProgressModule extends ConsumerWidget {
           },
         ),
       ],
-    ).animate().fadeIn(duration: 240.ms, delay: 40.ms).slideY(begin: 0.05, end: 0);
+    ).animate().fadeIn(duration: 240.ms, delay: 60.ms).slideY(begin: 0.04, end: 0);
   }
 }
 
-class _CalendarioMigliorato extends ConsumerWidget {
-  const _CalendarioMigliorato();
+// ─── Calendario Module ────────────────────────────────────────────────────────
+
+class _CalendarioModule extends ConsumerWidget {
+  const _CalendarioModule();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -946,86 +711,94 @@ class _CalendarioMigliorato extends ConsumerWidget {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
     final idUtente = ref.watch(fornitoreIdUtenteCorrente);
-
-    if (idUtente == null) {
-      return const SizedBox.shrink();
-    }
-
-    if (idUtente == null) {
-      return const SizedBox.shrink();
-    }
+    if (idUtente == null) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
-          title: 'Calendario allenamenti',
-          subtitle: 'Le ultime sessioni completate.',
+          title: 'Ultime sessioni',
           trailing: TextButton(
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(builder: (_) => const PaginaCalendarioAllenamenti()),
-              );
-            },
-            child: const Text('Apri'),
+            onPressed: () =>
+                Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(
+                  builder: (_) => const PaginaCalendarioAllenamenti()),
+            ),
+            child: const Text('Vedi tutto'),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
         AppCard(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: EdgeInsets.zero,
           child: StreamBuilder<List<SessioneCalendario>>(
             stream: archivio.guardaSessioniCompletate(idUtente),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return const AppInlineBanner(message: 'Cronologia non disponibile.');
+                return const Padding(
+                  padding: EdgeInsets.all(AppSpacing.md),
+                  child: AppInlineBanner(
+                      message: 'Cronologia non disponibile.'),
+                );
               }
-
-              final list = (snapshot.data ?? []).toList();
-              list.sort((a, b) {
-                final da = a.sessione.fine ?? a.sessione.inizio;
-                final db = b.sessione.fine ?? b.sessione.inizio;
-                return db.compareTo(da);
-              });
-
-              if (snapshot.connectionState == ConnectionState.waiting && list.isEmpty) {
-                return const AppSkeleton(height: 110, radius: AppRadius.lg);
-              }
-
-              if (list.isEmpty) {
-                return _EmptyState(
-                  icon: Icons.calendar_month,
-                  title: 'Nessuna sessione ancora',
-                  subtitle: 'Avvia e completa un allenamento per popolare lo storico.',
-                  actionLabel: 'Avvia allenamento',
-                  onAction: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(builder: (_) => const PaginaSessione()),
-                    );
-                  },
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  (snapshot.data ?? []).isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(AppSpacing.md),
+                  child: AppSkeleton(height: 100, radius: AppRadius.lg),
                 );
               }
 
-              final items = list.take(2).toList();
+              final list = [...(snapshot.data ?? [])]..sort((a, b) {
+                  final da = a.sessione.fine ?? a.sessione.inizio;
+                  final db = b.sessione.fine ?? b.sessione.inizio;
+                  return db.compareTo(da);
+                });
+
+              if (list.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calendar_today_outlined,
+                          size: 28,
+                          color: c.onSurface.withOpacity(0.25)),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Nessuna sessione',
+                        style: theme.textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Avvia il primo allenamento per popolare lo storico.',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final items = list.take(3).toList();
               return Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   for (int i = 0; i < items.length; i++) ...[
-                    _TimelineRow(
-                      icon: Icons.fitness_center,
-                      title: items[i].nomeScheda,
-                      subtitle:
-                      '${_formattaDataBreve(items[i].sessione.fine ?? items[i].sessione.inizio)} • ${_formattaOrario(items[i].sessione.fine ?? items[i].sessione.inizio)}',
-                      trailing: Icon(Icons.chevron_right, color: c.onSurface.withOpacity(0.50)),
-                      onTap: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => const PaginaCalendarioAllenamenti()),
-                        );
-                      },
-                    ),
-                    if (i != items.length - 1)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                        child: Divider(height: 1, color: c.outline.withOpacity(0.55)),
+                    _SessionRow(
+                      item: items[i],
+                      onTap: () =>
+                          Navigator.of(context, rootNavigator: true).push(
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                const PaginaCalendarioAllenamenti()),
                       ),
+                    ),
+                    if (i < items.length - 1)
+                      Divider(
+                          height: 1,
+                          indent: AppSpacing.lg + 48,
+                          color: c.outline),
                   ],
                 ],
               );
@@ -1033,42 +806,90 @@ class _CalendarioMigliorato extends ConsumerWidget {
           ),
         ),
       ],
-    ).animate().fadeIn(duration: 240.ms, delay: 60.ms).slideY(begin: 0.05, end: 0);
+    ).animate().fadeIn(duration: 240.ms, delay: 80.ms).slideY(begin: 0.04, end: 0);
   }
 }
 
-class _MisureMigliorate extends ConsumerWidget {
-  const _MisureMigliorate();
+class _SessionRow extends StatelessWidget {
+  const _SessionRow({required this.item, required this.onTap});
+  final SessioneCalendario item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final c = theme.colorScheme;
+    final data = item.sessione.fine ?? item.sessione.inizio;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: c.surfaceVariant,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(Icons.fitness_center_rounded,
+                  color: c.onSurface.withOpacity(0.50), size: 20),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.nomeScheda,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${_formattaDataBreve(data)} · ${_formattaOrario(data)}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right,
+                size: 18, color: c.onSurface.withOpacity(0.28)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Misure Module ────────────────────────────────────────────────────────────
+
+class _MisureModule extends ConsumerWidget {
+  const _MisureModule();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final archivio = ref.watch(fornitoreArchivioLocale);
     final theme = Theme.of(context);
     final c = theme.colorScheme;
-
     final idUtente = ref.watch(fornitoreIdUtenteCorrente);
-
-    if (idUtente == null) {
-      return const SizedBox.shrink();
-    }
-
-    if (idUtente == null) {
-      return const SizedBox.shrink();
-    }
+    if (idUtente == null) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
-          title: 'Misure',
-          subtitle: 'Ultimo check-in e variazione.',
+          title: 'Misure corporee',
           trailing: TextButton(
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(builder: (_) => const PaginaMisure()),
-              );
-            },
-            child: const Text('Apri'),
+            onPressed: () => Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(builder: (_) => const PaginaMisure()),
+            ),
+            child: const Text('Vedi tutto'),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -1077,60 +898,80 @@ class _MisureMigliorate extends ConsumerWidget {
             stream: archivio.guardaMisure(idUtente),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return const AppInlineBanner(message: 'Misure non disponibili.');
+                return const AppInlineBanner(
+                    message: 'Misure non disponibili.');
+              }
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  (snapshot.data ?? []).isEmpty) {
+                return const AppSkeleton(height: 110, radius: AppRadius.lg);
               }
 
-              final misure = (snapshot.data ?? []).toList();
-              misure.sort((a, b) => b.data.compareTo(a.data));
-
-              if (snapshot.connectionState == ConnectionState.waiting && misure.isEmpty) {
-                return const AppSkeleton(height: 120, radius: AppRadius.lg);
-              }
+              final misure = [...(snapshot.data ?? [])]
+                ..sort((a, b) => b.data.compareTo(a.data));
 
               if (misure.isEmpty) {
-                return _EmptyState(
-                  icon: Icons.monitor_weight_outlined,
-                  title: 'Nessuna misura registrata',
-                  subtitle: 'Fai un check-in per tracciare i progressi.',
-                  actionLabel: 'Vai alle misure',
-                  onAction: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(builder: (_) => const PaginaMisure()),
-                    );
-                  },
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.monitor_weight_outlined,
+                        size: 28,
+                        color: c.onSurface.withOpacity(0.25)),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Nessuna misura',
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Fai il primo check-in per tracciare i progressi.',
+                        style: theme.textTheme.bodySmall),
+                    const SizedBox(height: AppSpacing.md),
+                    AppButton(
+                      label: 'Vai alle misure',
+                      icon: Icons.arrow_forward,
+                      filled: false,
+                      small: true,
+                      onPressed: () =>
+                          Navigator.of(context, rootNavigator: true).push(
+                        MaterialPageRoute(builder: (_) => const PaginaMisure()),
+                      ),
+                    ),
+                  ],
                 );
               }
 
               final last = misure.first;
               final prev = misure.length > 1 ? misure[1] : null;
-              final delta = prev == null ? null : (last.peso - prev.peso);
+              final delta = prev != null ? last.peso - prev.peso : null;
 
               String fmtDelta(double v) {
-                final sign = v >= 0 ? '+' : '';
+                final sign = v > 0 ? '+' : '';
                 return '$sign${v.toStringAsFixed(1)} kg';
               }
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '${last.peso.toStringAsFixed(1)}',
+                        last.peso.toStringAsFixed(1),
                         style: theme.textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.6,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1.0,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.only(bottom: 7),
                         child: Text(
                           'kg',
                           style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: c.onSurface.withOpacity(0.75),
+                            color: c.onSurface.withOpacity(0.45),
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -1138,63 +979,39 @@ class _MisureMigliorate extends ConsumerWidget {
                       if (delta != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.xs,
-                          ),
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: c.surfaceVariant.withOpacity(0.70),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: c.outline.withOpacity(0.55)),
+                            color: (delta <= 0 ? c.tertiary : c.primary)
+                                .withOpacity(0.10),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: (delta <= 0 ? c.tertiary : c.primary)
+                                  .withOpacity(0.20),
+                            ),
                           ),
                           child: Text(
-                            'Δ ${fmtDelta(delta)}',
+                            fmtDelta(delta),
                             style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: c.onSurface.withOpacity(0.85),
+                              fontWeight: FontWeight.w700,
+                              color: delta <= 0 ? c.tertiary : c.primary,
                             ),
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: 4),
                   Text(
                     'Ultima misura: ${_formattaDataBreve(last.data)}',
                     style: theme.textTheme.bodySmall,
                   ),
-                  if (prev != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      'Confronto: ${_formattaDataBreve(prev.data)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: c.onSurface.withOpacity(0.72),
-                      ),
-                    ),
-                  ],
                   if (last.percentualeMassaGrassa != null) ...[
                     const SizedBox(height: AppSpacing.md),
-                    _TimelineRow(
+                    _MisuraRow(
                       icon: Icons.water_drop_outlined,
-                      title: 'Massa grassa',
-                      subtitle: '${last.percentualeMassaGrassa!.toStringAsFixed(1)}%',
-                      trailing: Icon(Icons.chevron_right, color: c.onSurface.withOpacity(0.50)),
-                      onTap: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => const PaginaMisure()),
-                        );
-                      },
-                    ),
-                  ] else ...[
-                    const SizedBox(height: AppSpacing.md),
-                    _TimelineRow(
-                      icon: Icons.insights_outlined,
-                      title: 'Dettagli e storico',
-                      subtitle: 'Apri le misure per vedere tutto.',
-                      trailing: Icon(Icons.chevron_right, color: c.onSurface.withOpacity(0.50)),
-                      onTap: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => const PaginaMisure()),
-                        );
-                      },
+                      label: 'Massa grassa',
+                      value:
+                          '${last.percentualeMassaGrassa!.toStringAsFixed(1)}%',
+                      color: const Color(0xFF0EA5E9),
                     ),
                   ],
                 ],
@@ -1203,160 +1020,80 @@ class _MisureMigliorate extends ConsumerWidget {
           ),
         ),
       ],
-    ).animate().fadeIn(duration: 240.ms, delay: 80.ms).slideY(begin: 0.05, end: 0);
+    ).animate().fadeIn(duration: 240.ms, delay: 100.ms).slideY(begin: 0.04, end: 0);
   }
 }
 
-class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({
+class _MisuraRow extends StatelessWidget {
+  const _MisuraRow({
     required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.trailing,
-    required this.onTap,
+    required this.label,
+    required this.value,
+    required this.color,
   });
-
   final IconData icon;
-  final String title;
-  final String subtitle;
-  final Widget trailing;
-  final VoidCallback onTap;
+  final String label;
+  final String value;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final c = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final c = Theme.of(context).colorScheme;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: c.primary.withOpacity(isDark ? 0.18 : 0.14),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  border: Border.all(color: c.primary.withOpacity(isDark ? 0.25 : 0.20)),
-                ),
-                child: Icon(icon, color: c.primary, size: 20),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              trailing,
-            ],
-          ),
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: c.surfaceVariant,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: AppSpacing.sm),
+          Text(label,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(fontWeight: FontWeight.w600)),
+          const Spacer(),
+          Text(value,
+              style: theme.textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w800, color: color)),
+        ],
       ),
     );
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.actionLabel,
-    required this.onAction,
-  });
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String actionLabel;
-  final VoidCallback onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final c = theme.colorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 28, color: c.onSurface.withOpacity(0.75)),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 6),
-        Text(subtitle, style: theme.textTheme.bodySmall),
-        const SizedBox(height: AppSpacing.md),
-        AppButton(
-          label: actionLabel,
-          icon: Icons.arrow_forward,
-          filled: false,
-          onPressed: onAction,
-        ),
-      ],
-    );
-  }
-}
-
-String _saluto(DateTime data) {
-  final ora = data.hour;
-  if (ora < 12) return 'Buongiorno';
-  if (ora < 18) return 'Buon pomeriggio';
+String _saluto(DateTime d) {
+  if (d.hour < 12) return 'Buongiorno';
+  if (d.hour < 18) return 'Buon pomeriggio';
   return 'Buonasera';
 }
 
-String _formattaOrario(DateTime data) {
-  final ore = data.hour.toString().padLeft(2, '0');
-  final minuti = data.minute.toString().padLeft(2, '0');
-  return '$ore:$minuti';
+String _formattaOrario(DateTime d) =>
+    '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+String _formattaDataBreve(DateTime d) {
+  const g = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+  const m = [
+    'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
+    'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'
+  ];
+  return '${g[d.weekday - 1]} ${d.day} ${m[d.month - 1]}';
 }
 
-String _formattaDataBreve(DateTime data) {
-  const giorni = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-  const mesi = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
-  final giorno = giorni[data.weekday - 1];
-  final mese = mesi[data.month - 1];
-  return '$giorno ${data.day} $mese';
-}
-
-List<int> _calcolaTrendSettimanale(List<SessioneCalendario> sessioni, int settimane) {
+List<int> _calcolaTrend(List<SessioneCalendario> sessioni, int settimane) {
   final now = DateTime.now();
   final valori = List<int>.filled(settimane, 0);
-
-  for (final sessione in sessioni) {
-    final data = sessione.sessione.fine ?? sessione.sessione.inizio;
+  for (final s in sessioni) {
+    final data = s.sessione.fine ?? s.sessione.inizio;
     final diff = now.difference(data).inDays;
     if (diff < 0) continue;
-    final indice = (settimane - 1) - (diff ~/ 7);
-    if (indice >= 0 && indice < settimane) valori[indice] += 1;
+    final idx = (settimane - 1) - (diff ~/ 7);
+    if (idx >= 0 && idx < settimane) valori[idx]++;
   }
-
   return valori;
-}
-
-String _normalizzaSezione(String sezione) {
-  final pulita = sezione.trim();
-  return pulita.isEmpty ? 'Allenamento' : pulita;
 }

@@ -14,12 +14,10 @@ class AppAllenamento extends StatelessWidget {
     return MaterialApp(
       title: 'Fitness 2026',
       debugShowCheckedModeBanner: false,
-      theme: temaChiaro(),
-      darkTheme: temaScuro(),
-      themeMode: ThemeMode.system,
+      theme: tema(),
+      themeMode: ThemeMode.light,
       home: const _AuthGate(),
     );
-
   }
 }
 
@@ -32,9 +30,7 @@ class _AuthGate extends ConsumerWidget {
     return stato.when(
       loading: () => const _SplashScreen(),
       error: (err, stack) => const PaginaLogin(),
-      data: (auth) => auth.autenticato
-          ? const PaginaDashboard()
-          : const PaginaLogin(),
+      data: (auth) => auth.autenticato ? const PaginaDashboard() : const PaginaLogin(),
     );
   }
 }
@@ -44,9 +40,11 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final c = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: c.background,
       body: Center(
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(color: c.primary, strokeWidth: 2.5),
       ),
     );
   }
