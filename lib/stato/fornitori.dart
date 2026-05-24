@@ -3,8 +3,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/archivio_locale.dart';
+import '../models/esercizio_remoto.dart';
 import '../models/scheda_remota.dart';
+import '../services/esercizi_service.dart';
 import '../services/schede_service.dart';
+import '../services/sessioni_service.dart';
 import '../utils/auth_api.dart';
 
 final fornitoreArchivioLocale = Provider<ArchivioLocale>((ref) {
@@ -174,12 +177,6 @@ class GestoreSessioneAttiva extends AsyncNotifier<SessioniAllenamentoData?> {
     final idUtente = ref.read(fornitoreIdUtenteCorrente);
     if (idUtente == null) throw StateError('Utente non autenticato');
 
-    await archivio.sincronizzaSchedaRemota(
-      utenteId: idUtente,
-      scheda: scheda,
-      eserciziRemoti: esercizi,
-    );
-
     final idSessione = await archivio.avviaSessione(
       schedaId: scheda.id,
       utenteId: idUtente,
@@ -193,6 +190,44 @@ class GestoreSessioneAttiva extends AsyncNotifier<SessioniAllenamentoData?> {
     final archivio = ref.read(fornitoreArchivioLocale);
     await archivio.completaSessione(sessioneId);
     state = const AsyncValue.data(null);
+    unawaited(_sincronizzaSessioneRemota(sessioneId, archivio));
+  }
+
+  Future<void> _sincronizzaSessioneRemota(
+    int sessioneId,
+    ArchivioLocale archivio,
+  ) async {
+    try {
+      final auth = ref.read(gestoreAutenticazione).valueOrNull;
+      if (auth == null || !auth.autenticato || auth.token == null) return;
+
+      final sessione = await archivio.leggiSessionePerId(sessioneId);
+      if (sessione == null) return;
+
+      final serie = await archivio.leggiTutteSerieDiSessione(sessioneId);
+
+      final sets = serie
+          .map((s) => <String, dynamic>{
+                'esercizioId': s.esercizioId,
+                'serieIndex': s.indiceSerie,
+                'ripetizioni': s.ripetizioni,
+                if (s.peso != null) 'peso': s.peso,
+                if (s.rpe != null) 'rpe': s.rpe!.round(),
+                if (s.secondiTempo != null) 'secondiTempo': s.secondiTempo,
+                if (s.note != null && s.note!.isNotEmpty) 'note': s.note,
+              })
+          .toList();
+
+      await SessioniService(token: auth.token!).sincronizzaSessione(
+        schedaId: sessione.schedaId,
+        inizio: sessione.inizio,
+        fine: sessione.fine ?? DateTime.now(),
+        note: sessione.note,
+        serie: sets,
+      );
+    } catch (_) {
+      // fire-and-forget: sync errors are non-fatal
+    }
   }
 }
 
@@ -331,4 +366,11 @@ final fornitoreEserciziSchedaRemota = FutureProvider.autoDispose
   final auth = ref.watch(gestoreAutenticazione).valueOrNull;
   if (auth == null || !auth.autenticato || auth.token == null) return [];
   return SchedeService(token: auth.token!).getEserciziScheda(schedaId);
+});
+
+final fornitoreEserciziRemoti =
+    FutureProvider.autoDispose<List<EsercizioRemoto>>((ref) async {
+  final auth = ref.watch(gestoreAutenticazione).valueOrNull;
+  if (auth == null || !auth.autenticato || auth.token == null) return [];
+  return EserciziService(token: auth.token!).getEsercizi();
 });

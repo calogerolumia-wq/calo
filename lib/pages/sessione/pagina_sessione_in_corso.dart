@@ -1,5 +1,4 @@
 ﻿import 'dart:collection';
-import 'dart:io';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
@@ -10,16 +9,24 @@ import 'package:vibration/vibration.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../database/archivio_locale.dart';
+import '../../models/esercizio_sessione.dart';
+import '../../models/scheda_remota.dart';
 import '../../stato/fornitori.dart';
 import '../../utils/gruppi_allenamento.dart';
-import '../../utils/immagini_esercizi.dart';
 import '../../utils/navigazione.dart';
 import 'pagina_sessione.dart';
 
 class PaginaSessioneInCorso extends ConsumerStatefulWidget {
-  const PaginaSessioneInCorso({super.key, required this.sessioneId});
+  const PaginaSessioneInCorso({
+    super.key,
+    required this.sessioneId,
+    this.esercizi = const [],
+    this.scheda,
+  });
 
   final int sessioneId;
+  final List<EsercizioSessione> esercizi;
+  final SchedaRemota? scheda;
 
   @override
   ConsumerState<PaginaSessioneInCorso> createState() =>
@@ -128,14 +135,12 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
     return '$settimane ${settimane == 1 ? 'settimana' : 'settimane'}';
   }
 
-  Future<void> _mostraDettagliSchedaSeNecessario(int schedaId) async {
+  Future<void> _mostraDettagliSchedaSeNecessario() async {
     if (_mostratiDettagliScheda || !mounted) return;
     _mostratiDettagliScheda = true;
-    final archivio = ref.read(fornitoreArchivioLocale);
-    final scheda = await archivio.leggiScheda(schedaId);
+    final scheda = widget.scheda;
     if (!mounted || scheda == null) return;
-    final durataScheda =
-        _formattaDurataScheda(scheda.dataAssegnazione, scheda.dataFine);
+    const durataScheda = null;
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -367,8 +372,8 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
     setState(() => _eserciziCompletati.add(esercizioId));
   }
 
-  Future<void> _completaEAvviaRecupero(EserciziData esercizio) async {
-    _segnaEsercizioCompletato(esercizio.id);
+  Future<void> _completaEAvviaRecupero(EsercizioSessione esercizio) async {
+    _segnaEsercizioCompletato(esercizio.esercizioId);
     final recuperoDefault = await ref.read(fornitoreRecuperoSecondi.future);
     if (!mounted) return;
     final recuperoSecondi = esercizio.recuperoSecondi ?? recuperoDefault;
@@ -410,12 +415,15 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
         }
 
         final puoTornare = Navigator.of(context).canPop();
-        if (sessione.schedaId != null && !_mostratiDettagliScheda) {
+        if (widget.scheda != null && !_mostratiDettagliScheda) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || sessione.schedaId == null) return;
-            _mostraDettagliSchedaSeNecessario(sessione.schedaId!);
+            if (!mounted) return;
+            _mostraDettagliSchedaSeNecessario();
           });
         }
+
+        // Determine if this is a scheda session or a free session
+        final schedaSessioneId = sessione.schedaId;
 
         return Scaffold(
           appBar: AppBar(
@@ -441,7 +449,7 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
           ),
           body: Stack(
             children: [
-              if (sessione.schedaId == null)
+              if (schedaSessioneId == null)
                 _ContenutoSessioneLibera(
                   onTorna: () => vaiAllaPaginaPrincipale(
                     context,
@@ -449,24 +457,37 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
                   ),
                 )
               else
-                StreamBuilder<List<EsercizioInScheda>>(
-                  stream: archivio.guardaEserciziScheda(sessione.schedaId!),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return _StatoMessaggio(
-                        titolo: 'Errore caricamento',
-                        descrizione:
-                            'Non riesco a caricare gli esercizi della scheda.',
+                Builder(
+                  builder: (context) {
+                    // When esercizi not provided (resume), fetch from REST
+                    final List<EsercizioSessione> elementi;
+                    if (widget.esercizi.isNotEmpty) {
+                      elementi = widget.esercizi;
+                    } else {
+                      final eserciziAsync = ref.watch(
+                        fornitoreEserciziSchedaRemota(schedaSessioneId),
                       );
-                    }
-
-                    final elementi = snapshot.data ?? [];
-
-                    if (snapshot.connectionState == ConnectionState.waiting &&
-                        elementi.isEmpty) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
+                      if (eserciziAsync.isLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (eserciziAsync.hasError) {
+                        return const _StatoMessaggio(
+                          titolo: 'Errore caricamento',
+                          descrizione:
+                              'Non riesco a caricare gli esercizi della scheda.',
+                        );
+                      }
+                      final remoti = eserciziAsync.value ?? [];
+                      elementi = remoti
+                          .asMap()
+                          .entries
+                          .map(
+                            (e) => EsercizioSessione.fromRemoto(
+                              e.value,
+                              e.key + 1,
+                            ),
+                          )
+                          .toList();
                     }
 
                     if (elementi.isEmpty) {
@@ -486,10 +507,8 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
                       );
                     }
 
-                    _richiediInizializzazioneSezione(
-                      sessione.schedaId!,
-                      sezioni,
-                    );
+                    final schedaId = widget.scheda?.id ?? schedaSessioneId;
+                    _richiediInizializzazioneSezione(schedaId, sezioni);
 
                     final sezioneAttiva = _sezioneAttiva;
                     if (sezioneAttiva == null) {
@@ -526,7 +545,7 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
 
                     if (_focusMode && _esercizioEvidenziatoId != null) {
                       final targetIndex = elementiSezione.indexWhere(
-                        (e) => e.esercizio.id == _esercizioEvidenziatoId,
+                        (e) => e.esercizioId == _esercizioEvidenziatoId,
                       );
                       if (targetIndex >= 0 && targetIndex != _indiceFocus) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -560,15 +579,12 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
                           if (indice >= 0 &&
                               indice < elementiSezione.length) {
                             _esercizioEvidenziatoId =
-                                elementiSezione[indice].esercizio.id;
+                                elementiSezione[indice].esercizioId;
                           }
                         });
                       },
                       onSezioneChanged: (sezione) =>
-                          _onSezioneSelezionata(
-                        sessione.schedaId!,
-                        sezione,
-                      ),
+                          _onSezioneSelezionata(schedaId, sezione),
                       onCompletaEsercizio: _completaEAvviaRecupero,
                       onRegistraSet: (esercizio) =>
                           _aggiungiSerie(context, sessione.id, esercizio),
@@ -618,14 +634,16 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
   Future<void> _aggiungiSerie(
     BuildContext context,
     int sessioneId,
-    EserciziData esercizio,
+    EsercizioSessione esercizio,
   ) async {
     final archivio = ref.read(fornitoreArchivioLocale);
-    final numeroSerieGiaFatte =
-        await archivio.contaSerieInSessione(sessioneId, esercizio.id);
+    final numeroSerieGiaFatte = await archivio.contaSerieInSessione(
+      sessioneId,
+      esercizio.esercizioId,
+    );
     final memoriaPesi = await ref.read(fornitoreMemoriaPesi.future);
     final ultimoPeso = memoriaPesi
-        ? await archivio.leggiUltimoPesoEsercizio(esercizio.id)
+        ? await archivio.leggiUltimoPesoEsercizio(esercizio.esercizioId)
         : null;
 
     if (!context.mounted) return;
@@ -634,7 +652,7 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
       context: context,
       isScrollControlled: true,
       builder: (context) => _PannelloSerie(
-        esercizio: esercizio,
+        nomeEsercizio: esercizio.nome,
         indiceSerie: numeroSerieGiaFatte + 1,
         pesoPrecompilato: ultimoPeso,
       ),
@@ -644,7 +662,7 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
 
     await archivio.registraSerie(
       sessioneId: sessioneId,
-      esercizioId: esercizio.id,
+      esercizioId: esercizio.esercizioId,
       indiceSerie: dati.indiceSerie,
       ripetizioni: dati.ripetizioni,
       peso: dati.peso,
@@ -659,7 +677,7 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
     if (!mounted) return;
     final recuperoSecondi = esercizio.recuperoSecondi ?? recuperoDefault;
     if (mounted) {
-      setState(() => _esercizioEvidenziatoId = esercizio.id);
+      setState(() => _esercizioEvidenziatoId = esercizio.esercizioId);
     }
     if (!mounted) return;
     ref
@@ -745,7 +763,7 @@ class _ContenutoSessioneDaScheda extends StatelessWidget {
   final ArchivioLocale archivio;
   final List<_SezioneInfo> sezioni;
   final _SezioneInfo sezioneAttiva;
-  final List<EsercizioInScheda> elementi;
+  final List<EsercizioSessione> elementi;
   final int? esercizioEvidenziatoId;
   final Set<int> eserciziCompletati;
   final bool focusMode;
@@ -754,8 +772,8 @@ class _ContenutoSessioneDaScheda extends StatelessWidget {
   final ValueChanged<bool> onFocusChanged;
   final ValueChanged<int> onFocusIndexChanged;
   final ValueChanged<String> onSezioneChanged;
-  final ValueChanged<EserciziData> onCompletaEsercizio;
-  final void Function(EserciziData esercizio) onRegistraSet;
+  final ValueChanged<EsercizioSessione> onCompletaEsercizio;
+  final void Function(EsercizioSessione esercizio) onRegistraSet;
 
   @override
   Widget build(BuildContext context) {
@@ -775,7 +793,7 @@ class _ContenutoSessioneDaScheda extends StatelessWidget {
       final elementoCorrente =
           totale == 0 ? null : elementi[indiceCorrente];
       final completato = elementoCorrente != null &&
-          eserciziCompletati.contains(elementoCorrente.esercizio.id);
+          eserciziCompletati.contains(elementoCorrente.esercizioId);
 
       return ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
@@ -802,7 +820,7 @@ class _ContenutoSessioneDaScheda extends StatelessWidget {
                 onPressed: elementoCorrente == null
                     ? null
                     : () {
-                        onCompletaEsercizio(elementoCorrente.esercizio);
+                        onCompletaEsercizio(elementoCorrente);
                         final prossimoIndice = indiceCorrente + 1;
                         if (prossimoIndice < totale) {
                           onFocusIndexChanged(prossimoIndice);
@@ -848,11 +866,11 @@ class _ContenutoSessioneDaScheda extends StatelessWidget {
                     archivio: archivio,
                     etichettaOrdine:
                         '${sezioneAttiva.etichettaBreve}${index + 1}',
-                    inEvidenza: esercizioEvidenziatoId == elemento.esercizio.id,
+                    inEvidenza: esercizioEvidenziatoId == elemento.esercizioId,
                     completato: eserciziCompletati
-                        .contains(elemento.esercizio.id),
+                        .contains(elemento.esercizioId),
                     focusMode: true,
-                    onRegistraSet: () => onRegistraSet(elemento.esercizio),
+                    onRegistraSet: () => onRegistraSet(elemento),
                   );
                 },
               ),
@@ -913,11 +931,11 @@ class _ContenutoSessioneDaScheda extends StatelessWidget {
               archivio: archivio,
               etichettaOrdine:
                   '${sezioneAttiva.etichettaBreve}${i + 1}',
-              inEvidenza: esercizioEvidenziatoId == elementi[i].esercizio.id,
+              inEvidenza: esercizioEvidenziatoId == elementi[i].esercizioId,
               completato:
-                  eserciziCompletati.contains(elementi[i].esercizio.id),
+                  eserciziCompletati.contains(elementi[i].esercizioId),
               focusMode: false,
-              onRegistraSet: () => onRegistraSet(elementi[i].esercizio),
+              onRegistraSet: () => onRegistraSet(elementi[i]),
             ).animate().fadeIn(
                   duration: 180.ms,
                   delay: (30 * i).ms,
@@ -1104,7 +1122,7 @@ class _CardEsercizioSessione extends StatelessWidget {
   });
 
   final int sessioneId;
-  final EsercizioInScheda elemento;
+  final EsercizioSessione elemento;
   final ArchivioLocale archivio;
   final String etichettaOrdine;
   final bool inEvidenza;
@@ -1117,8 +1135,8 @@ class _CardEsercizioSessione extends StatelessWidget {
     final tema = Theme.of(context);
     final colori = tema.colorScheme;
 
-    final testoSecondario = elemento.esercizio.descrizione ??
-        elemento.esercizio.muscoloObiettivo ??
+    final testoSecondario = elemento.descrizione ??
+        elemento.gruppoMuscolare ??
         'Esercizio mirato';
 
     final bordo = inEvidenza
@@ -1172,7 +1190,7 @@ class _ContenutoEsercizioFocus extends StatelessWidget {
   });
 
   final int sessioneId;
-  final EsercizioInScheda elemento;
+  final EsercizioSessione elemento;
   final ArchivioLocale archivio;
   final String etichettaOrdine;
   final String testoSecondario;
@@ -1182,9 +1200,8 @@ class _ContenutoEsercizioFocus extends StatelessWidget {
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final colori = tema.colorScheme;
-    final esercizio = elemento.esercizio;
-    final percorsoImmagine = percorsoImmagineEsercizio(esercizio);
-    final percorsoVideo = percorsoVideoEsercizio(esercizio);
+    final urlImmagine = elemento.urlImmagine;
+    const percorsoVideo = null;
     final notaAllenatore = elemento.noteAllenatore?.trim();
     final durataMinuti = elemento.durataMinuti;
     final infoGruppo = decodificaSezioneConGruppo(elemento.sezione);
@@ -1214,7 +1231,7 @@ class _ContenutoEsercizioFocus extends StatelessWidget {
                     width: constraints.maxWidth,
                     height: lato,
                     child: _ImmagineEsercizio(
-                      percorsoImmagine: percorsoImmagine,
+                      urlImmagine: urlImmagine,
                       larghezza: constraints.maxWidth,
                       altezza: lato,
                       fit: BoxFit.contain,
@@ -1251,7 +1268,7 @@ class _ContenutoEsercizioFocus extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          esercizio.nome,
+          elemento.nome,
           style: tema.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w800,
             height: 1.1,
@@ -1259,7 +1276,7 @@ class _ContenutoEsercizioFocus extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          _rigaMetaEsercizio(esercizio),
+          _rigaMetaEsercizio(elemento),
           style: tema.textTheme.bodySmall?.copyWith(
             color: colori.primary.withOpacity(0.65),
           ),
@@ -1316,7 +1333,7 @@ class _ContenutoEsercizioFocus extends StatelessWidget {
         StreamBuilder<List<SerieRegistrateData>>(
           stream: archivio.guardaSeriePerEsercizio(
             sessioneId,
-            esercizio.id,
+            elemento.esercizioId,
           ),
           builder: (context, snapshot) {
             final serie = snapshot.data ?? [];
@@ -1353,7 +1370,7 @@ class _ContenutoEsercizioCompatto extends StatelessWidget {
   });
 
   final int sessioneId;
-  final EsercizioInScheda elemento;
+  final EsercizioSessione elemento;
   final ArchivioLocale archivio;
   final String etichettaOrdine;
   final String testoSecondario;
@@ -1395,7 +1412,7 @@ class _ContenutoEsercizioCompatto extends StatelessWidget {
           const SizedBox(height: 10),
         ],
         _IntestazioneEsercizio(
-          esercizio: elemento.esercizio,
+          esercizio: elemento,
           etichettaOrdine: etichettaOrdine,
           onRegistraSet: onRegistraSet,
         ),
@@ -1451,7 +1468,7 @@ class _ContenutoEsercizioCompatto extends StatelessWidget {
         StreamBuilder<List<SerieRegistrateData>>(
           stream: archivio.guardaSeriePerEsercizio(
             sessioneId,
-            elemento.esercizio.id,
+            elemento.esercizioId,
           ),
           builder: (context, snapshot) {
             final serie = snapshot.data ?? [];
@@ -1483,7 +1500,7 @@ class _IntestazioneEsercizio extends StatelessWidget {
     required this.onRegistraSet,
   });
 
-  final EserciziData esercizio;
+  final EsercizioSessione esercizio;
   final String etichettaOrdine;
   final VoidCallback onRegistraSet;
 
@@ -1492,23 +1509,17 @@ class _IntestazioneEsercizio extends StatelessWidget {
     final tema = Theme.of(context);
     final colori = tema.colorScheme;
 
-    final percorsoImmagine = percorsoImmagineEsercizio(esercizio);
-    final percorsoVideo = percorsoVideoEsercizio(esercizio);
+    final urlImmagine = esercizio.urlImmagine;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: GestureDetector(
-            onTap: percorsoVideo == null
-                ? null
-                : () => _mostraVideoEsercizio(context, percorsoVideo),
-            child: _ImmagineEsercizio(
-              percorsoImmagine: percorsoImmagine,
-              larghezza: 56,
-              altezza: 56,
-            ),
+          child: _ImmagineEsercizio(
+            urlImmagine: urlImmagine,
+            larghezza: 56,
+            altezza: 56,
           ),
         ),
         const SizedBox(width: 12),
@@ -1559,18 +1570,12 @@ class _IntestazioneEsercizio extends StatelessWidget {
   }
 }
 
-String _rigaMetaEsercizio(EserciziData esercizio) {
-  final parti = <String>[];
-  if ((esercizio.muscoloObiettivo ?? '').trim().isNotEmpty) {
-    parti.add(esercizio.muscoloObiettivo!.trim());
-  }
-  if ((esercizio.intensita ?? '').trim().isNotEmpty) {
-    parti.add(esercizio.intensita!.trim());
-  }
-  return parti.isEmpty ? 'Dettagli non specificati' : parti.join(' • ');
+String _rigaMetaEsercizio(EsercizioSessione esercizio) {
+  final gruppo = (esercizio.gruppoMuscolare ?? '').trim();
+  return gruppo.isEmpty ? 'Dettagli non specificati' : gruppo;
 }
 
-String _testoRipetizioni(EsercizioInScheda elemento) {
+String _testoRipetizioni(EsercizioSessione elemento) {
   final piramidali = elemento.ripetizioniPiramidali;
   if (piramidali != null && piramidali.trim().isNotEmpty) {
     return piramidali;
@@ -1587,13 +1592,13 @@ void _mostraVideoEsercizio(BuildContext context, String percorsoVideo) {
 
 class _ImmagineEsercizio extends StatelessWidget {
   const _ImmagineEsercizio({
-    required this.percorsoImmagine,
+    required this.urlImmagine,
     required this.larghezza,
     required this.altezza,
     this.fit = BoxFit.cover,
   });
 
-  final String percorsoImmagine;
+  final String? urlImmagine;
   final double larghezza;
   final double altezza;
   final BoxFit fit;
@@ -1610,25 +1615,16 @@ class _ImmagineEsercizio extends StatelessWidget {
       child: Icon(Icons.image, color: colori.primary.withOpacity(0.6)),
     );
 
-    if (percorsoImmagine.trim().isEmpty) return fallback();
+    final url = urlImmagine?.trim() ?? '';
+    if (url.isEmpty) return fallback();
 
-    final usaAsset = immagineEAsset(percorsoImmagine);
-
-    return usaAsset
-        ? Image.asset(
-            percorsoImmagine,
-            width: larghezza,
-            height: altezza,
-            fit: fit,
-            errorBuilder: (context, error, stack) => fallback(),
-          )
-        : Image.file(
-            File(percorsoImmagine),
-            width: larghezza,
-            height: altezza,
-            fit: fit,
-            errorBuilder: (context, error, stack) => fallback(),
-          );
+    return Image.network(
+      url,
+      width: larghezza,
+      height: altezza,
+      fit: fit,
+      errorBuilder: (context, error, stack) => fallback(),
+    );
   }
 }
 
@@ -1848,7 +1844,7 @@ String _etichettaBreveSezione(String sezione) {
   return pulita.length <= 3 ? pulita.toUpperCase() : pulita;
 }
 
-List<_SezioneInfo> _costruisciSezioni(List<EsercizioInScheda> elementi) {
+List<_SezioneInfo> _costruisciSezioni(List<EsercizioSessione> elementi) {
   final mappaOrdine = LinkedHashMap<String, int>();
 
   for (final elemento in elementi) {
@@ -2151,12 +2147,12 @@ class DatiSerieIngresso {
 
 class _PannelloSerie extends StatefulWidget {
   const _PannelloSerie({
-    required this.esercizio,
+    required this.nomeEsercizio,
     required this.indiceSerie,
     this.pesoPrecompilato,
   });
 
-  final EserciziData esercizio;
+  final String nomeEsercizio;
   final int indiceSerie;
   final double? pesoPrecompilato;
 
@@ -2216,7 +2212,7 @@ class _PannelloSerieState extends State<_PannelloSerie> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Serie ${widget.indiceSerie} • ${widget.esercizio.nome}',
+                  'Serie ${widget.indiceSerie} • ${widget.nomeEsercizio}',
                   style: tema.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),

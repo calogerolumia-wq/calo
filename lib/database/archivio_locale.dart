@@ -900,6 +900,16 @@ class ArchivioLocale extends _$ArchivioLocale {
     return query.watch();
   }
 
+  Future<List<SerieRegistrateData>> leggiTutteSerieDiSessione(int sessioneId) {
+    return (select(serieRegistrate)
+          ..where((tbl) => tbl.sessioneId.equals(sessioneId))
+          ..orderBy([
+            (tbl) => OrderingTerm(expression: tbl.esercizioId),
+            (tbl) => OrderingTerm(expression: tbl.indiceSerie),
+          ]))
+        .get();
+  }
+
   Future<int> contaSerieInSessione(int sessioneId, int esercizioId) async {
     final conteggio = await (select(serieRegistrate)
           ..where(

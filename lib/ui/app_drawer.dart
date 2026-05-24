@@ -33,26 +33,16 @@ class AppDrawer extends ConsumerWidget {
 
     Navigator.of(context).pop(); // chiude il drawer
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-
     try {
       await ref.read(gestoreAutenticazione.notifier).logout();
-      if (!context.mounted) return;
-      Navigator.of(context).pop(); // chiude il loader
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      // _AuthGate reagisce allo stato nonAutenticato e naviga automaticamente
     } on AuthException catch (e) {
       if (!context.mounted) return;
-      Navigator.of(context).pop(); // chiude il loader
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
     } catch (_) {
       if (!context.mounted) return;
-      Navigator.of(context).pop(); // chiude il loader
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Logout non riuscito. Riprova.')),
       );

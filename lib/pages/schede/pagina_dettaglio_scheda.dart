@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/esercizio_sessione.dart';
 import '../../models/scheda_remota.dart';
 import '../../stato/fornitori.dart';
 import '../../utils/api_config.dart';
@@ -225,7 +226,20 @@ class PaginaDettaglioScheda extends ConsumerWidget {
                 if (!context.mounted) return;
                 apriPagina(
                   context,
-                  PaginaSessioneInCorso(sessioneId: idSessione),
+                  PaginaSessioneInCorso(
+                    sessioneId: idSessione,
+                    esercizi: esercizi
+                        .asMap()
+                        .entries
+                        .map(
+                          (e) => EsercizioSessione.fromRemoto(
+                            e.value,
+                            e.key + 1,
+                          ),
+                        )
+                        .toList(),
+                    scheda: scheda,
+                  ),
                 );
               } catch (e) {
                 if (!context.mounted) return;

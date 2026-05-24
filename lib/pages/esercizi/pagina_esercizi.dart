@@ -1,17 +1,10 @@
-﻿import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../database/archivio_locale.dart';
-import '../../database/converter.dart';
+import '../../models/esercizio_remoto.dart';
 import '../../stato/fornitori.dart';
 import '../../ui/app_ui.dart';
-import '../../utils/immagini_esercizi.dart';
-import '../../utils/navigazione.dart';
-import 'pagina_dettaglio_esercizio.dart';
-import 'pagina_editor_esercizio.dart';
 
 class PaginaEsercizi extends ConsumerStatefulWidget {
   const PaginaEsercizi({super.key});
@@ -22,8 +15,8 @@ class PaginaEsercizi extends ConsumerStatefulWidget {
 
 class _PaginaEserciziState extends ConsumerState<PaginaEsercizi> {
   final _ricercaController = TextEditingController();
-  Attrezzo? _attrezzo;
-  GruppoMuscolare? _gruppo;
+  String? _attrezzo;
+  String? _gruppo;
 
   @override
   void dispose() {
@@ -31,21 +24,51 @@ class _PaginaEserciziState extends ConsumerState<PaginaEsercizi> {
     super.dispose();
   }
 
+  List<EsercizioRemoto> _filtra(List<EsercizioRemoto> tutti) {
+    final q = _ricercaController.text.toLowerCase().trim();
+    return tutti.where((e) {
+      if (q.isNotEmpty && !e.nome.toLowerCase().contains(q)) return false;
+      if (_attrezzo != null &&
+          e.attrezzo?.toUpperCase() != _attrezzo!.toUpperCase()) return false;
+      if (_gruppo != null &&
+          e.gruppoMuscolare?.toUpperCase() != _gruppo!.toUpperCase()) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  String _label(String s) => s
+      .split('_')
+      .map((w) =>
+          w.isEmpty ? '' : w[0].toUpperCase() + w.substring(1).toLowerCase())
+      .join(' ');
+
   @override
   Widget build(BuildContext context) {
-    final archivio = ref.watch(fornitoreArchivioLocale);
+    final asyncEsercizi = ref.watch(fornitoreEserciziRemoti);
+    final tuttiEsercizi = asyncEsercizi.valueOrNull ?? [];
+
+    final attrezzi = tuttiEsercizi
+        .map((e) => e.attrezzo)
+        .whereType<String>()
+        .toSet()
+        .toList()
+      ..sort();
+    final gruppi = tuttiEsercizi
+        .map((e) => e.gruppoMuscolare)
+        .whereType<String>()
+        .toSet()
+        .toList()
+      ..sort();
+
+    final esercizi = _filtra(tuttiEsercizi);
+
     final theme = Theme.of(context);
     final c = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => apriPagina(context, const PaginaEditorEsercizio()),
-        icon: const Icon(Icons.add),
-        label: const Text('Nuovo esercizio'),
-        backgroundColor: c.primary,
-        foregroundColor: c.onPrimary,
-      ),
       body: Stack(
         children: [
           const _EserciziBackground(),
@@ -84,15 +107,14 @@ class _PaginaEserciziState extends ConsumerState<PaginaEsercizi> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Cerca e gestisci il tuo database.',
+                            'Sfoglia il catalogo esercizi.',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: c.onSurface.withOpacity(isDark ? 0.72 : 0.70),
+                              color: c.onSurface
+                                  .withOpacity(isDark ? 0.72 : 0.70),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.md),
-
-                          // Search bar: surface-based, leggibile in dark
                           _SearchField(
                             controller: _ricercaController,
                             onChanged: (_) => setState(() {}),
@@ -104,7 +126,6 @@ class _PaginaEserciziState extends ConsumerState<PaginaEsercizi> {
                 ),
               ),
 
-              // Filtri dentro una card “pulita”
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
@@ -118,84 +139,80 @@ class _PaginaEserciziState extends ConsumerState<PaginaEsercizi> {
                     radius: BorderRadius.circular(AppRadius.xl),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final w = constraints.maxWidth;
-                        final twoCols = w >= 360;
+                        final twoCols = constraints.maxWidth >= 360;
 
-                        final attrezzoField = DropdownButtonFormField<Attrezzo?>(
-                          value: _attrezzo,
+                        final attrezzoField = DropdownButtonFormField<String?>(
+                          value: attrezzi.contains(_attrezzo) ? _attrezzo : null,
                           isExpanded: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Attrezzo',
-                          ),
+                          decoration: const InputDecoration(labelText: 'Attrezzo'),
                           items: [
-                            const DropdownMenuItem<Attrezzo?>(
+                            const DropdownMenuItem<String?>(
                               value: null,
                               child: Text('Tutti'),
                             ),
-                            ...Attrezzo.values.map(
-                                  (attrezzo) => DropdownMenuItem<Attrezzo?>(
-                                value: attrezzo,
-                                child: Text(attrezzo.etichetta),
-                              ),
-                            ),
+                            ...attrezzi.map((a) => DropdownMenuItem<String?>(
+                                  value: a,
+                                  child: Text(_label(a)),
+                                )),
                           ],
-                          onChanged: (valore) => setState(() => _attrezzo = valore),
+                          onChanged: (v) => setState(() => _attrezzo = v),
                         );
 
-                        final gruppoField = DropdownButtonFormField<GruppoMuscolare?>(
-                          value: _gruppo,
+                        final gruppoField = DropdownButtonFormField<String?>(
+                          value: gruppi.contains(_gruppo) ? _gruppo : null,
                           isExpanded: true,
                           decoration: const InputDecoration(
-                            labelText: 'Gruppo muscolare',
-                          ),
+                              labelText: 'Gruppo muscolare'),
                           items: [
-                            const DropdownMenuItem<GruppoMuscolare?>(
+                            const DropdownMenuItem<String?>(
                               value: null,
                               child: Text('Tutti'),
                             ),
-                            ...GruppoMuscolare.values.map(
-                                  (gruppo) => DropdownMenuItem<GruppoMuscolare?>(
-                                value: gruppo,
-                                child: Text(gruppo.etichetta),
-                              ),
-                            ),
+                            ...gruppi.map((g) => DropdownMenuItem<String?>(
+                                  value: g,
+                                  child: Text(_label(g)),
+                                )),
                           ],
-                          onChanged: (valore) => setState(() => _gruppo = valore),
+                          onChanged: (v) => setState(() => _gruppo = v),
                         );
 
                         if (twoCols) {
-                          return Row(
-                            children: [
-                              Expanded(child: attrezzoField),
-                              const SizedBox(width: AppSpacing.md),
-                              Expanded(child: gruppoField),
-                            ],
-                          );
+                          return Row(children: [
+                            Expanded(child: attrezzoField),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(child: gruppoField),
+                          ]);
                         }
-
-                        return Column(
-                          children: [
-                            attrezzoField,
-                            const SizedBox(height: AppSpacing.md),
-                            gruppoField,
-                          ],
-                        );
+                        return Column(children: [
+                          attrezzoField,
+                          const SizedBox(height: AppSpacing.md),
+                          gruppoField,
+                        ]);
                       },
                     ),
                   ),
                 ),
               ),
 
-              // Lista
-              StreamBuilder<List<EserciziData>>(
-                stream: archivio.guardaEsercizi(
-                  ricerca: _ricercaController.text,
-                  attrezzo: _attrezzo,
-                  gruppoMuscolare: _gruppo,
+              asyncEsercizi.when(
+                loading: () => const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
                 ),
-                builder: (context, snapshot) {
-                  final esercizi = snapshot.data ?? [];
-
+                error: (e, _) => SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Text(
+                        'Errore nel caricamento degli esercizi.',
+                        style: theme.textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+                data: (_) {
                   if (esercizi.isEmpty) {
                     return SliverFillRemaining(
                       hasScrollBody: false,
@@ -226,7 +243,8 @@ class _PaginaEserciziState extends ConsumerState<PaginaEsercizi> {
                               ),
                             ],
                           ),
-                        ).animate().fadeIn(duration: 220.ms).slideY(begin: 0.04, end: 0),
+                        ).animate().fadeIn(duration: 220.ms).slideY(
+                            begin: 0.04, end: 0),
                       ),
                     );
                   }
@@ -241,17 +259,12 @@ class _PaginaEserciziState extends ConsumerState<PaginaEsercizi> {
                     sliver: SliverList.builder(
                       itemCount: esercizi.length,
                       itemBuilder: (context, index) {
-                        final esercizio = esercizi[index];
                         return _EsercizioTile(
-                          esercizio: esercizio,
-                          onTap: () => apriPagina(
-                            context,
-                            PaginaDettaglioEsercizio(esercizioId: esercizio.id),
-                          ),
+                          esercizio: esercizi[index],
                         ).animate().fadeIn(
-                          duration: 320.ms,
-                          delay: (28 * index).ms,
-                        );
+                              duration: 320.ms,
+                              delay: (28 * index).ms,
+                            );
                       },
                     ),
                   );
@@ -265,7 +278,6 @@ class _PaginaEserciziState extends ConsumerState<PaginaEsercizi> {
   }
 }
 
-/// Background “soft” come dashboard: niente gradienti violenti.
 class _EserciziBackground extends StatelessWidget {
   const _EserciziBackground();
 
@@ -279,9 +291,10 @@ class _EserciziBackground extends StatelessWidget {
       Colors.white.withOpacity(isDark ? 0.02 : 0.00),
       c.background,
     );
-
-    final tintTop = Color.alphaBlend(c.primary.withOpacity(isDark ? 0.08 : 0.05), base);
-    final tintBottom = Color.alphaBlend(c.secondary.withOpacity(isDark ? 0.06 : 0.04), base);
+    final tintTop =
+        Color.alphaBlend(c.primary.withOpacity(isDark ? 0.08 : 0.05), base);
+    final tintBottom =
+        Color.alphaBlend(c.secondary.withOpacity(isDark ? 0.06 : 0.04), base);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -381,7 +394,8 @@ class _SearchField extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface.withOpacity(isDark ? 0.92 : 0.96),
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: c.outline.withOpacity(isDark ? 0.55 : 0.80)),
+        border:
+            Border.all(color: c.outline.withOpacity(isDark ? 0.55 : 0.80)),
         boxShadow: [
           BoxShadow(
             color: c.shadow.withOpacity(isDark ? 0.10 : 0.06),
@@ -393,15 +407,15 @@ class _SearchField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
+        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
         decoration: InputDecoration(
           hintText: 'Cerca per nome',
-          prefixIcon: Icon(Icons.search, color: c.onSurface.withOpacity(0.70)),
+          prefixIcon:
+              Icon(Icons.search, color: c.onSurface.withOpacity(0.70)),
           border: InputBorder.none,
           filled: false,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         ),
       ),
     );
@@ -409,76 +423,69 @@ class _SearchField extends StatelessWidget {
 }
 
 class _EsercizioTile extends StatelessWidget {
-  const _EsercizioTile({
-    required this.esercizio,
-    required this.onTap,
-  });
+  const _EsercizioTile({required this.esercizio});
 
-  final EserciziData esercizio;
-  final VoidCallback onTap;
+  final EsercizioRemoto esercizio;
+
+  String _label(String s) => s
+      .split('_')
+      .map((w) =>
+          w.isEmpty ? '' : w[0].toUpperCase() + w.substring(1).toLowerCase())
+      .join(' ');
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
 
-    final percorso = percorsoImmagineEsercizio(esercizio);
-    final usaAsset = immagineEAsset(percorso);
-
     Widget fallback() => Container(
-      width: 54,
-      height: 54,
-      color: c.surfaceVariant.withOpacity(0.7),
-      child: Icon(Icons.image, color: c.onSurface.withOpacity(0.65)),
-    );
+          width: 54,
+          height: 54,
+          color: c.surfaceVariant.withOpacity(0.7),
+          child: Icon(Icons.fitness_center,
+              color: c.onSurface.withOpacity(0.65)),
+        );
 
-    final immagine = usaAsset
-        ? Image.asset(
-      percorso,
-      width: 54,
-      height: 54,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => fallback(),
-    )
-        : Image.file(
-      File(percorso),
-      width: 54,
-      height: 54,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => fallback(),
-    );
+    final immagine = esercizio.immagineUrl != null
+        ? Image.network(
+            esercizio.immagineUrl!,
+            width: 54,
+            height: 54,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => fallback(),
+          )
+        : fallback();
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-        child: AppCard(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          radius: BorderRadius.circular(AppRadius.xl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: immagine,
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Text(
-                      esercizio.nome,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: AppCard(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        radius: BorderRadius.circular(AppRadius.xl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  child: immagine,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    esercizio.nome,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: c.onSurface.withOpacity(0.45)),
-                ],
-              ),
+                ),
+              ],
+            ),
+            if (esercizio.descrizione != null ||
+                esercizio.muscoloTarget != null) ...[
               const SizedBox(height: 8),
               Text(
-                esercizio.descrizione ?? esercizio.muscoloObiettivo ?? 'Esercizio mirato',
+                esercizio.descrizione ?? esercizio.muscoloTarget!,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: c.onSurface.withOpacity(0.78),
                   height: 1.35,
@@ -486,17 +493,20 @@ class _EsercizioTile extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: AppSpacing.md),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _EtichettaEsercizio(testo: esercizio.attrezzo.etichetta),
-                  _EtichettaEsercizio(testo: esercizio.gruppoMuscolare.etichetta),
-                ],
-              ),
             ],
-          ),
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (esercizio.attrezzo != null)
+                  _EtichettaEsercizio(testo: _label(esercizio.attrezzo!)),
+                if (esercizio.gruppoMuscolare != null)
+                  _EtichettaEsercizio(
+                      testo: _label(esercizio.gruppoMuscolare!)),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -518,7 +528,8 @@ class _EtichettaEsercizio extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surfaceVariant.withOpacity(isDark ? 0.55 : 1.0),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: c.outline.withOpacity(isDark ? 0.40 : 0.55)),
+        border:
+            Border.all(color: c.outline.withOpacity(isDark ? 0.40 : 0.55)),
       ),
       child: Text(
         testo,

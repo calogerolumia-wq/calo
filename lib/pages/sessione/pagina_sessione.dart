@@ -2,6 +2,7 @@
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/esercizio_sessione.dart';
 import '../../models/scheda_remota.dart';
 import '../../services/schede_service.dart';
 import '../../stato/fornitori.dart';
@@ -38,7 +39,18 @@ class _PaginaSessioneState extends ConsumerState<PaginaSessione> {
           .avviaDaSchedaRemota(scheda, esercizi);
 
       if (!mounted) return;
-      apriPagina(context, PaginaSessioneInCorso(sessioneId: idSessione));
+      apriPagina(
+        context,
+        PaginaSessioneInCorso(
+          sessioneId: idSessione,
+          esercizi: esercizi
+              .asMap()
+              .entries
+              .map((e) => EsercizioSessione.fromRemoto(e.value, e.key + 1))
+              .toList(),
+          scheda: scheda,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
