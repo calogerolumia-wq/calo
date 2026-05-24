@@ -46,6 +46,9 @@ class _PaginaEserciziState extends ConsumerState<PaginaEsercizi> {
 
   @override
   Widget build(BuildContext context) {
+    final cfg = ref.watch(fornitoreConfigurazioneApp);
+    if (!cfg.featureEsercizi) return const FeatureDisabilitata(titolo: 'Archivio esercizi');
+
     final asyncEsercizi = ref.watch(fornitoreEserciziRemoti);
     final tuttiEsercizi = asyncEsercizi.valueOrNull ?? [];
 

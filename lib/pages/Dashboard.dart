@@ -412,7 +412,7 @@ class _StatusTag extends StatelessWidget {
 
 // ─── Quick Actions ────────────────────────────────────────────────────────────
 
-class _QuickActions extends StatelessWidget {
+class _QuickActions extends ConsumerWidget {
   const _QuickActions();
 
   void _apri(BuildContext context, Widget page) {
@@ -421,25 +421,28 @@ class _QuickActions extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
+    final cfg = ref.watch(fornitoreConfigurazioneApp);
 
     final items = <_ActionItem>[
-      _ActionItem(
-        title: 'Schede',
-        subtitle: 'Piani',
-        icon: Icons.view_agenda_outlined,
-        color: c.primary,
-        onTap: () => _apri(context, const PaginaSchede()),
-      ),
-      _ActionItem(
-        title: 'Esercizi',
-        subtitle: 'Catalogo',
-        icon: Icons.bolt_outlined,
-        color: const Color(0xFF7C3AED),
-        onTap: () => _apri(context, const PaginaEsercizi()),
-      ),
+      if (cfg.featureSchede)
+        _ActionItem(
+          title: 'Schede',
+          subtitle: 'Piani',
+          icon: Icons.view_agenda_outlined,
+          color: c.primary,
+          onTap: () => _apri(context, const PaginaSchede()),
+        ),
+      if (cfg.featureEsercizi)
+        _ActionItem(
+          title: 'Esercizi',
+          subtitle: 'Catalogo',
+          icon: Icons.bolt_outlined,
+          color: const Color(0xFF7C3AED),
+          onTap: () => _apri(context, const PaginaEsercizi()),
+        ),
       _ActionItem(
         title: 'Calendario',
         subtitle: 'Sessioni',
@@ -447,14 +450,17 @@ class _QuickActions extends StatelessWidget {
         color: const Color(0xFF0EA5E9),
         onTap: () => _apri(context, const PaginaCalendarioAllenamenti()),
       ),
-      _ActionItem(
-        title: 'Misure',
-        subtitle: 'Check-in',
-        icon: Icons.monitor_weight_outlined,
-        color: c.tertiary,
-        onTap: () => _apri(context, const PaginaMisure()),
-      ),
+      if (cfg.featureMisurazioni)
+        _ActionItem(
+          title: 'Misure',
+          subtitle: 'Check-in',
+          icon: Icons.monitor_weight_outlined,
+          color: c.tertiary,
+          onTap: () => _apri(context, const PaginaMisure()),
+        ),
     ];
+
+    if (items.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -878,7 +884,8 @@ class _MisureModule extends ConsumerWidget {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
     final idUtente = ref.watch(fornitoreIdUtenteCorrente);
-    if (idUtente == null) return const SizedBox.shrink();
+    final cfg = ref.watch(fornitoreConfigurazioneApp);
+    if (idUtente == null || !cfg.featureMisurazioni) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

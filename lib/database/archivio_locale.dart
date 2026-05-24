@@ -645,6 +645,50 @@ class ArchivioLocale extends _$ArchivioLocale {
     );
   }
 
+  Future<void> salvaConfigurazione({
+    required bool featureEsercizi,
+    required bool featureSchede,
+    required bool featureModelliSchede,
+    required bool featureTimer,
+    required bool featureMisurazioni,
+  }) async {
+    final pairs = {
+      'feat_esercizi': featureEsercizi,
+      'feat_schede': featureSchede,
+      'feat_modelli_schede': featureModelliSchede,
+      'feat_timer': featureTimer,
+      'feat_misurazioni': featureMisurazioni,
+    };
+    for (final entry in pairs.entries) {
+      await into(impostazioni).insertOnConflictUpdate(
+        ImpostazioniCompanion(
+          chiave: Value(entry.key),
+          valore: Value(entry.value.toString()),
+        ),
+      );
+    }
+  }
+
+  Future<Map<String, bool>> leggiConfigurazione() async {
+    final keys = [
+      'feat_esercizi',
+      'feat_schede',
+      'feat_modelli_schede',
+      'feat_timer',
+      'feat_misurazioni',
+    ];
+    final result = <String, bool>{};
+    for (final key in keys) {
+      final voce = await (select(impostazioni)
+            ..where((tbl) => tbl.chiave.equals(key)))
+          .getSingleOrNull();
+      result[key] = voce == null
+          ? true
+          : (voce.valore.toLowerCase() == 'true' || voce.valore == '1');
+    }
+    return result;
+  }
+
   Stream<List<EserciziData>> guardaEsercizi({
     String? ricerca,
     Attrezzo? attrezzo,

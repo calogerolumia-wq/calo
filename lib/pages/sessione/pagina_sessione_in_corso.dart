@@ -374,6 +374,8 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
 
   Future<void> _completaEAvviaRecupero(EsercizioSessione esercizio) async {
     _segnaEsercizioCompletato(esercizio.esercizioId);
+    final cfg = ref.read(fornitoreConfigurazioneApp);
+    if (!cfg.featureTimer) return;
     final recuperoDefault = await ref.read(fornitoreRecuperoSecondi.future);
     if (!mounted) return;
     final recuperoSecondi = esercizio.recuperoSecondi ?? recuperoDefault;
@@ -672,6 +674,9 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
     );
 
     if (!mounted) return;
+
+    final cfg = ref.read(fornitoreConfigurazioneApp);
+    if (!cfg.featureTimer) return;
 
     final recuperoDefault = await ref.read(fornitoreRecuperoSecondi.future);
     if (!mounted) return;

@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../database/archivio_locale.dart';
+import '../../ui/app_ui.dart';
 import '../../utils/navigazione.dart';
 import '../../stato/fornitori.dart';
 import 'pagina_editor_misura.dart';
@@ -13,6 +14,9 @@ class PaginaMisure extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cfg = ref.watch(fornitoreConfigurazioneApp);
+    if (!cfg.featureMisurazioni) return const FeatureDisabilitata(titolo: 'Misurazioni');
+
     final archivio = ref.watch(fornitoreArchivioLocale);
     final idUtente = ref.watch(fornitoreIdUtenteCorrente);
     if (idUtente == null) {

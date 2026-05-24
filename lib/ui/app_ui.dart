@@ -350,6 +350,45 @@ class AppInlineBanner extends StatelessWidget {
   }
 }
 
+class FeatureDisabilitata extends StatelessWidget {
+  const FeatureDisabilitata({super.key, required this.titolo});
+  final String titolo;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final c = theme.colorScheme;
+    return Scaffold(
+      appBar: AppBar(title: Text(titolo)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_outline_rounded,
+                  size: 56, color: c.onSurface.withOpacity(0.25)),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Funzionalità non disponibile',
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Questa sezione è stata disabilitata dall\'amministratore.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: c.onSurface.withOpacity(0.54)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class AppSkeleton extends StatefulWidget {
   const AppSkeleton({
     super.key,

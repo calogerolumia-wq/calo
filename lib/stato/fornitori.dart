@@ -3,6 +3,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/archivio_locale.dart';
+import '../models/configurazione_app.dart';
 import '../models/esercizio_remoto.dart';
 import '../models/scheda_remota.dart';
 import '../services/esercizi_service.dart';
@@ -17,10 +18,15 @@ final fornitoreArchivioLocale = Provider<ArchivioLocale>((ref) {
 });
 
 class StatoAutenticazione {
-  const StatoAutenticazione._({this.utente, this.token});
+  const StatoAutenticazione._({
+    this.utente,
+    this.token,
+    ConfigurazioneApp? configurazione,
+  }) : configurazione = configurazione ?? const ConfigurazioneApp();
 
   final UtentiData? utente;
   final String? token;
+  final ConfigurazioneApp configurazione;
 
   bool get autenticato => utente != null && token != null;
 
@@ -29,9 +35,14 @@ class StatoAutenticazione {
 
   factory StatoAutenticazione.autenticato(
     UtentiData utente,
-    String token,
-  ) =>
-      StatoAutenticazione._(utente: utente, token: token);
+    String token, {
+    ConfigurazioneApp configurazione = const ConfigurazioneApp(),
+  }) =>
+      StatoAutenticazione._(
+        utente: utente,
+        token: token,
+        configurazione: configurazione,
+      );
 }
 
 final gestoreAutenticazione =
@@ -54,7 +65,20 @@ class GestoreAutenticazione extends AsyncNotifier<StatoAutenticazione> {
       return StatoAutenticazione.nonAutenticato();
     }
 
-    return StatoAutenticazione.autenticato(utente, sessione.token);
+    final cfg = await archivio.leggiConfigurazione();
+    final configurazione = ConfigurazioneApp(
+      featureEsercizi: cfg['feat_esercizi'] ?? true,
+      featureSchede: cfg['feat_schede'] ?? true,
+      featureModelliSchede: cfg['feat_modelli_schede'] ?? true,
+      featureTimer: cfg['feat_timer'] ?? true,
+      featureMisurazioni: cfg['feat_misurazioni'] ?? true,
+    );
+
+    return StatoAutenticazione.autenticato(
+      utente,
+      sessione.token,
+      configurazione: configurazione,
+    );
   }
 
   Future<void> login({
@@ -81,14 +105,26 @@ class GestoreAutenticazione extends AsyncNotifier<StatoAutenticazione> {
       utenteId: risposta.id,
       token: risposta.token,
     );
+    await archivio.salvaConfigurazione(
+      featureEsercizi: risposta.featureEsercizi,
+      featureSchede: risposta.featureSchede,
+      featureModelliSchede: risposta.featureModelliSchede,
+      featureTimer: risposta.featureTimer,
+      featureMisurazioni: risposta.featureMisurazioni,
+    );
 
     final utente = await archivio.leggiUtentePerId(risposta.id);
     if (utente == null) {
       throw AuthException('Impossibile salvare i dati utente');
     }
 
+    final configurazione = ConfigurazioneApp.fromLogin(risposta);
     state = AsyncValue.data(
-      StatoAutenticazione.autenticato(utente, risposta.token),
+      StatoAutenticazione.autenticato(
+        utente,
+        risposta.token,
+        configurazione: configurazione,
+      ),
     );
   }
 
@@ -373,4 +409,9 @@ final fornitoreEserciziRemoti =
   final auth = ref.watch(gestoreAutenticazione).valueOrNull;
   if (auth == null || !auth.autenticato || auth.token == null) return [];
   return EserciziService(token: auth.token!).getEsercizi();
+});
+
+final fornitoreConfigurazioneApp = Provider<ConfigurazioneApp>((ref) {
+  final auth = ref.watch(gestoreAutenticazione).valueOrNull;
+  return auth?.configurazione ?? const ConfigurazioneApp();
 });

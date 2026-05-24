@@ -21,6 +21,9 @@ class _PaginaSchedeState extends ConsumerState<PaginaSchede> {
 
   @override
   Widget build(BuildContext context) {
+    final cfg = ref.watch(fornitoreConfigurazioneApp);
+    if (!cfg.featureSchede) return const FeatureDisabilitata(titolo: 'Schede');
+
     final theme = Theme.of(context);
     final c = theme.colorScheme;
     final schedeAsync = ref.watch(fornitoreSchedeRemote);
