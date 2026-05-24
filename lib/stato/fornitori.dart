@@ -397,6 +397,13 @@ class GestoreSchedeRemote extends AutoDisposeAsyncNotifier<List<SchedaRemota>> {
   }
 }
 
+final fornitoreModelliSchede =
+    FutureProvider.autoDispose<List<SchedaRemota>>((ref) async {
+  final auth = ref.watch(gestoreAutenticazione).valueOrNull;
+  if (auth == null || !auth.autenticato || auth.token == null) return [];
+  return SchedeService(token: auth.token!).getModelliSchede();
+});
+
 final fornitoreEserciziSchedaRemota = FutureProvider.autoDispose
     .family<List<EsercizioInSchedaRemota>, int>((ref, schedaId) async {
   final auth = ref.watch(gestoreAutenticazione).valueOrNull;

@@ -6,6 +6,7 @@ class SchedaRemota {
     this.livelloDifficolta,
     required this.attiva,
     this.noteAllenatore,
+    this.modello = false,
   });
 
   final int id;
@@ -14,6 +15,7 @@ class SchedaRemota {
   final String? livelloDifficolta;
   final bool attiva;
   final String? noteAllenatore;
+  final bool modello;
 
   factory SchedaRemota.fromJson(Map<String, dynamic> json) {
     return SchedaRemota(
@@ -23,6 +25,7 @@ class SchedaRemota {
       livelloDifficolta: json['livelloDifficolta'] as String?,
       attiva: (json['attiva'] as bool?) ?? false,
       noteAllenatore: json['noteAllenatore'] as String?,
+      modello: (json['modello'] as bool?) ?? false,
     );
   }
 }

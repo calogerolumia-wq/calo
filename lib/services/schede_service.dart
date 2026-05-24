@@ -48,6 +48,20 @@ class SchedeService {
     throw Exception('Errore esercizi (${response.statusCode})');
   }
 
+  Future<List<SchedaRemota>> getModelliSchede() async {
+    final response = await http
+        .get(Uri.parse('$_baseUrl/api/schede/modelli'), headers: _headers)
+        .timeout(const Duration(seconds: 20));
+
+    if (response.statusCode == 200) {
+      final list = jsonDecode(response.body) as List;
+      return list
+          .map((e) => SchedaRemota.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception('Errore modelli (${response.statusCode})');
+  }
+
   String risolviUrlImmagine(String? url) {
     if (url == null || url.isEmpty) return '';
     if (url.startsWith('http')) return url;
