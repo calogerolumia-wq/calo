@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/archivio_locale.dart';
 import '../models/configurazione_app.dart';
 import '../models/esercizio_remoto.dart';
+import '../models/notifica_remota.dart';
 import '../models/scheda_remota.dart';
 import '../services/esercizi_service.dart';
+import '../services/notifiche_service.dart';
 import '../services/schede_service.dart';
 import '../services/sessioni_service.dart';
 import '../utils/auth_api.dart';
@@ -421,4 +423,11 @@ final fornitoreEserciziRemoti =
 final fornitoreConfigurazioneApp = Provider<ConfigurazioneApp>((ref) {
   final auth = ref.watch(gestoreAutenticazione).valueOrNull;
   return auth?.configurazione ?? const ConfigurazioneApp();
+});
+
+final fornitoreNotifiche =
+    FutureProvider.autoDispose<List<NotificaRemota>>((ref) async {
+  final auth = ref.watch(gestoreAutenticazione).valueOrNull;
+  if (auth == null || !auth.autenticato || auth.token == null) return [];
+  return NotificheService(token: auth.token!).getMie();
 });

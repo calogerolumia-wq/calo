@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitness_app/pages/Impostazioni.dart';
+import '../pages/notifiche/pagina_notifiche.dart';
 import '../pages/profilo/pagina_profilo.dart';
 import '../stato/fornitori.dart';
 import '../utils/auth_api.dart';
@@ -78,6 +79,18 @@ class AppDrawer extends ConsumerWidget {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => const PaginaProfilo(),
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.notifications_outlined),
+                    title: const Text('Notifiche'),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PaginaNotifiche(),
                         ),
                       );
                     },
