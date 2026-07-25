@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../models/misurazione_remota.dart';
 import '../models/scheda_remota.dart';
 import 'converter.dart';
 import 'tabelle.dart';
@@ -121,7 +122,7 @@ class ArchivioLocale extends _$ArchivioLocale {
   ArchivioLocale() : super(_apriConnessione());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -138,6 +139,12 @@ class ArchivioLocale extends _$ArchivioLocale {
           if (from < 4) {
             await m.addColumn(schedeEsercizi, schedeEsercizi.durataMinuti);
             await m.addColumn(schedeEsercizi, schedeEsercizi.noteAllenatore);
+          }
+          if (from < 5) {
+            await m.addColumn(sessioniAllenamento, sessioniAllenamento.sincronizzata);
+          }
+          if (from < 6) {
+            await m.addColumn(utenti, utenti.username);
           }
         },
       );
@@ -516,12 +523,14 @@ class ArchivioLocale extends _$ArchivioLocale {
     required int id,
     required String nome,
     String? email,
+    String? username,
   }) async {
     await into(utenti).insertOnConflictUpdate(
       UtentiCompanion(
         id: Value(id),
         nome: Value(nome),
         email: Value(email),
+        username: Value(username),
       ),
     );
   }
@@ -878,6 +887,13 @@ class ArchivioLocale extends _$ArchivioLocale {
     });
   }
 
+  Future<List<SchedeData>> leggiSchedePerUtente(int utenteId) {
+    return (select(schede)
+          ..where((tbl) => tbl.utenteId.equals(utenteId))
+          ..orderBy([(tbl) => OrderingTerm(expression: tbl.nomeScheda)]))
+        .get();
+  }
+
   Future<void> eliminaScheda(int id) async {
     await transaction(() async {
       await (delete(schedeEsercizi)..where((tbl) => tbl.schedaId.equals(id)))
@@ -916,6 +932,26 @@ class ArchivioLocale extends _$ArchivioLocale {
           ])
           ..limit(1))
         .getSingleOrNull();
+  }
+
+  Future<List<SessioniAllenamentoData>> leggiSessioniDaSincronizzare(int utenteId) {
+    return (select(sessioniAllenamento)
+          ..where((tbl) =>
+              tbl.utenteId.equals(utenteId) &
+              tbl.completata.equals(true) &
+              tbl.sincronizzata.equals(false))
+          ..orderBy([
+            (tbl) => OrderingTerm(expression: tbl.inizio),
+          ]))
+        .get();
+  }
+
+  Future<void> segnaSessioneSincronizzata(int sessioneId) {
+    return (update(sessioniAllenamento)
+          ..where((tbl) => tbl.id.equals(sessioneId)))
+        .write(const SessioniAllenamentoCompanion(
+          sincronizzata: Value(true),
+        ));
   }
 
   Future<void> completaSessione(int sessioneId) async {
@@ -1008,6 +1044,45 @@ class ArchivioLocale extends _$ArchivioLocale {
         dataOra: Value(DateTime.now()),
       ),
     );
+  }
+
+  Future<List<MisurazioniData>> leggiMisurePerUtente(int utenteId) {
+    return (select(misurazioni)
+          ..where((tbl) => tbl.utenteId.equals(utenteId))
+          ..orderBy([
+            (tbl) => OrderingTerm(expression: tbl.data, mode: OrderingMode.desc)
+          ]))
+        .get();
+  }
+
+  Future<void> sincronizzaMisureDaServer(
+      List<MisurazioneRemota> misureRemote, int utenteId) async {
+    await transaction(() async {
+      for (final m in misureRemote) {
+        // Upsert per data: sostituisce il record locale con quello del server
+        await (delete(misurazioni)
+              ..where((tbl) =>
+                  tbl.utenteId.equals(utenteId) & tbl.data.equals(m.date)))
+            .go();
+        await into(misurazioni).insert(MisurazioniCompanion.insert(
+          utenteId: utenteId,
+          peso: m.peso,
+          percentualeMassaGrassa: Value(m.bodyFatPercent),
+          petto: Value(m.petto),
+          vita: Value(m.vita),
+          coscia: Value(m.coscia),
+          note: Value(m.note),
+          data: m.date,
+        ));
+      }
+    });
+  }
+
+  Future<void> eliminaMisuraPerData(int utenteId, DateTime data) {
+    return (delete(misurazioni)
+          ..where((tbl) =>
+              tbl.utenteId.equals(utenteId) & tbl.data.equals(data)))
+        .go();
   }
 
   Stream<List<MisurazioniData>> guardaMisure(int utenteId) {

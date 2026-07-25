@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../database/archivio_locale.dart';
+import '../../models/workout_remoto.dart';
 import '../../stato/fornitori.dart';
 
 class PaginaCalendarioAllenamenti extends ConsumerStatefulWidget {
@@ -18,12 +19,15 @@ class _PaginaCalendarioAllenamentiState
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
 
-  DateTime _soloData(DateTime data) => DateTime(data.year, data.month, data.day);
+  DateTime _soloData(DateTime data) =>
+      DateTime(data.year, data.month, data.day);
 
   @override
   Widget build(BuildContext context) {
     final archivio = ref.watch(fornitoreArchivioLocale);
     final idUtente = ref.watch(fornitoreIdUtenteCorrente);
+    final storicoRemotoAsync = ref.watch(fornitoreStoricoRemoto);
+    final sessioniRemote = storicoRemotoAsync.valueOrNull ?? [];
     final tema = Theme.of(context);
     final colori = tema.colorScheme;
 
@@ -36,18 +40,42 @@ class _PaginaCalendarioAllenamentiState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calendario allenamenti'),
+        actions: [
+          if (storicoRemotoAsync.isLoading)
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+        ],
       ),
       body: StreamBuilder<List<SessioneCalendario>>(
         stream: archivio.guardaSessioniCompletate(idUtente),
         builder: (context, snapshot) {
-          final sessioni = snapshot.data ?? [];
-          final eventi = <DateTime, List<SessioneCalendario>>{};
+          final sessioniLocali = snapshot.data ?? [];
 
-          for (final elemento in sessioni) {
-            final riferimento = elemento.sessione.fine ?? elemento.sessione.inizio;
-            final giorno = _soloData(riferimento);
-            final lista = eventi.putIfAbsent(giorno, () => []);
-            lista.add(elemento);
+          // Deduplica: sessioni remote già presenti in locale (per startTime ±60s)
+          final localStartTimes =
+              sessioniLocali.map((s) => s.sessione.inizio).toList();
+
+          final remoteUnici = sessioniRemote.where((r) {
+            return !localStartTimes.any(
+              (lt) => (r.startTime.difference(lt).inSeconds).abs() < 60,
+            );
+          }).toList();
+
+          // Mappa eventi per il calendario (sia locali che remote uniche)
+          final eventi = <DateTime, List<Object>>{};
+          for (final elem in sessioniLocali) {
+            final rif = elem.sessione.fine ?? elem.sessione.inizio;
+            eventi.putIfAbsent(_soloData(rif), () => []).add(elem);
+          }
+          for (final r in remoteUnici) {
+            final rif = r.endTime ?? r.startTime;
+            eventi.putIfAbsent(_soloData(rif), () => []).add(r);
           }
 
           final giornoSelezionato = _soloData(_selectedDay);
@@ -61,14 +89,16 @@ class _PaginaCalendarioAllenamentiState
                 decoration: BoxDecoration(
                   color: colori.surface,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: colori.primary.withOpacity(0.2)),
+                  border:
+                      Border.all(color: colori.primary.withOpacity(0.2)),
                 ),
-                child: TableCalendar<SessioneCalendario>(
+                child: TableCalendar<Object>(
                   firstDay: DateTime.utc(2020, 1, 1),
                   lastDay: DateTime.utc(2035, 12, 31),
                   focusedDay: _focusedDay,
                   startingDayOfWeek: StartingDayOfWeek.monday,
-                  selectedDayPredicate: (day) => isSameDay(day, _selectedDay),
+                  selectedDayPredicate: (day) =>
+                      isSameDay(day, _selectedDay),
                   eventLoader: (day) => eventi[_soloData(day)] ?? [],
                   onDaySelected: (selectedDay, focusedDay) {
                     setState(() {
@@ -97,15 +127,20 @@ class _PaginaCalendarioAllenamentiState
                   headerStyle: HeaderStyle(
                     formatButtonVisible: false,
                     titleCentered: true,
-                    leftChevronIcon:
-                        Icon(Icons.chevron_left, color: colori.primary),
-                    rightChevronIcon:
-                        Icon(Icons.chevron_right, color: colori.primary),
-                    titleTextStyle: tema.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: colori.primary,
-                        ) ??
-                        const TextStyle(),
+                    leftChevronIcon: Icon(
+                      Icons.chevron_left,
+                      color: colori.primary,
+                    ),
+                    rightChevronIcon: Icon(
+                      Icons.chevron_right,
+                      color: colori.primary,
+                    ),
+                    titleTextStyle:
+                        tema.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: colori.primary,
+                            ) ??
+                            const TextStyle(),
                   ),
                 ),
               ),
@@ -135,7 +170,8 @@ class _PaginaCalendarioAllenamentiState
                   decoration: BoxDecoration(
                     color: colori.primary.withOpacity(0.06),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: colori.primary.withOpacity(0.2)),
+                    border: Border.all(
+                        color: colori.primary.withOpacity(0.2)),
                   ),
                   child: Text(
                     'Nessuna sessione completata in questo giorno.',
@@ -146,10 +182,13 @@ class _PaginaCalendarioAllenamentiState
                 )
               else
                 for (final evento in eventiGiorno)
-                  _CardSessioneCalendario(
-                    evento: evento,
-                    archivio: archivio,
-                  ),
+                  if (evento is SessioneCalendario)
+                    _CardSessioneCalendario(
+                      evento: evento,
+                      archivio: archivio,
+                    )
+                  else if (evento is WorkoutSessioneRemota)
+                    _CardSessioneRemota(sessione: evento),
             ],
           );
         },
@@ -163,6 +202,8 @@ class _PaginaCalendarioAllenamentiState
     return '$giorno/$mese/${data.year}';
   }
 }
+
+// ─── Card sessione locale (da SQLite) ────────────────────────────────────────
 
 class _CardSessioneCalendario extends StatelessWidget {
   const _CardSessioneCalendario({
@@ -218,7 +259,8 @@ class _CardSessioneCalendario extends StatelessWidget {
                       color: colori.primary.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.fitness_center, color: colori.primary),
+                    child:
+                        Icon(Icons.fitness_center, color: colori.primary),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -282,6 +324,202 @@ class _CardSessioneCalendario extends StatelessWidget {
   }
 }
 
+// ─── Card sessione remota (da server) ────────────────────────────────────────
+
+class _CardSessioneRemota extends StatelessWidget {
+  const _CardSessioneRemota({required this.sessione});
+
+  final WorkoutSessioneRemota sessione;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final colori = tema.colorScheme;
+    final inizio = sessione.startTime;
+    final fine = sessione.endTime ?? sessione.startTime;
+
+    // Raggruppa i set per esercizio
+    final gruppi = <String, List<SetRecordRemoto>>{};
+    for (final s in sessione.sets) {
+      gruppi.putIfAbsent(s.nomeEsercizio, () => []).add(s);
+    }
+
+    final totaleSet = sessione.sets.length;
+    final totaleEsercizi = gruppi.length;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colori.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colori.secondary.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Theme(
+        data: tema.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(top: 8),
+          title: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: colori.secondary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.cloud_done_outlined,
+                    color: colori.secondary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            sessione.nomeScheda ?? 'Sessione libera',
+                            style: tema.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: colori.secondary.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            'server',
+                            style: tema.textTheme.labelSmall?.copyWith(
+                              color: colori.secondary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${_formattaOrario(inizio)} - ${_formattaOrario(fine)}',
+                      style: tema.textTheme.bodySmall?.copyWith(
+                        color: colori.secondary.withOpacity(0.8),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$totaleSet set • $totaleEsercizi esercizi',
+                      style: tema.textTheme.bodySmall?.copyWith(
+                        color: colori.secondary.withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          children: [
+            if (gruppi.isEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Nessun set registrato.',
+                  style: tema.textTheme.bodySmall?.copyWith(
+                    color: colori.secondary.withOpacity(0.7),
+                  ),
+                ),
+              )
+            else
+              for (final entry in gruppi.entries)
+                _DettaglioEsercizioRemoto(
+                  nomeEsercizio: entry.key,
+                  serie: entry.value,
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formattaOrario(DateTime data) {
+    final ore = data.hour.toString().padLeft(2, '0');
+    final minuti = data.minute.toString().padLeft(2, '0');
+    return '$ore:$minuti';
+  }
+}
+
+class _DettaglioEsercizioRemoto extends StatelessWidget {
+  const _DettaglioEsercizioRemoto({
+    required this.nomeEsercizio,
+    required this.serie,
+  });
+
+  final String nomeEsercizio;
+  final List<SetRecordRemoto> serie;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final colori = tema.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            nomeEsercizio,
+            style: tema.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: serie
+                .map(
+                  (s) => _ChipSerieCalendario(
+                    testo: _testoSerie(s),
+                    colore: colori.secondary,
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _testoSerie(SetRecordRemoto s) {
+    final peso = s.peso == null ? null : '${s.peso} kg';
+    final rpe = s.rpe == null ? null : 'RPE ${s.rpe}';
+    final tempo = s.tempoSec == null ? null : '${s.tempoSec}s';
+    final parti = <String>[
+      'S${s.serieIndex}',
+      '${s.ripetizioni} rep',
+      if (peso != null) peso,
+      if (rpe != null) rpe,
+      if (tempo != null) tempo,
+    ];
+    return parti.join(' • ');
+  }
+}
+
+// ─── Widget condivisi ─────────────────────────────────────────────────────────
+
 class _DettaglioEsercizio extends StatelessWidget {
   const _DettaglioEsercizio({
     required this.esercizio,
@@ -328,9 +566,8 @@ class _DettaglioEsercizio extends StatelessWidget {
   String _testoSerie(SerieRegistrateData record) {
     final peso = record.peso == null ? null : '${record.peso} kg';
     final rpe = record.rpe == null ? null : 'RPE ${record.rpe}';
-    final tempo = record.secondiTempo == null
-        ? null
-        : '${record.secondiTempo}s';
+    final tempo =
+        record.secondiTempo == null ? null : '${record.secondiTempo}s';
     final parti = <String>[
       'S${record.indiceSerie}',
       '${record.ripetizioni} rep',
@@ -370,6 +607,8 @@ class _ChipSerieCalendario extends StatelessWidget {
     );
   }
 }
+
+// ─── Utilities ───────────────────────────────────────────────────────────────
 
 class _GruppoSerieEsercizio {
   _GruppoSerieEsercizio(this.esercizio);

@@ -55,6 +55,7 @@ class AppDrawer extends ConsumerWidget {
     final utente = ref.watch(fornitoreUtenteCorrente);
     final nome = utente?.nome ?? 'Utente';
     final email = (utente?.email ?? '').trim();
+    final username = utente?.username;
 
     return Drawer(
       child: SafeArea(
@@ -62,7 +63,11 @@ class AppDrawer extends ConsumerWidget {
           children: [
             UserAccountsDrawerHeader(
               accountName: Text(nome),
-              accountEmail: Text(email.isEmpty ? ' ' : email),
+              accountEmail: Text(
+                username != null && username.isNotEmpty
+                    ? '@$username'
+                    : email.isEmpty ? ' ' : email,
+              ),
               currentAccountPicture: const CircleAvatar(
                 child: Icon(Icons.person),
               ),

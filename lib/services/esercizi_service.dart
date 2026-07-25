@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/esercizio_remoto.dart';
 import '../utils/api_config.dart';
+import '../utils/auth_exception.dart';
 
 class EserciziService {
   final String token;
@@ -22,6 +23,7 @@ class EserciziService {
           .map((e) => EsercizioRemoto.fromJson(e as Map<String, dynamic>))
           .toList();
     }
+    if (response.statusCode == 401) throw const UnauthorizedException();
     throw Exception('Errore caricamento esercizi: ${response.statusCode}');
   }
 }

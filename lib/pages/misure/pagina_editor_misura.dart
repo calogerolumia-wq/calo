@@ -1,8 +1,7 @@
-﻿import 'package:drift/drift.dart' show Value;
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../database/archivio_locale.dart';
+import '../../models/misurazione_remota.dart';
 import '../../stato/fornitori.dart';
 import '../../utils/navigazione.dart';
 import 'pagina_misure.dart';
@@ -127,35 +126,23 @@ class _PaginaEditorMisuraState extends ConsumerState<PaginaEditorMisura> {
 
   Future<void> _salvaMisura(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
-    final archivio = ref.read(fornitoreArchivioLocale);
-    final idUtente = ref.read(fornitoreIdUtenteCorrente);
-    if (idUtente == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Utente non autenticato')),
-      );
-      return;
-    }
     final peso = double.tryParse(_pesoController.text);
     if (peso == null) return;
 
-    final misura = MisurazioniCompanion.insert(
-      utenteId: idUtente,
+    final misura = MisurazioneRemota(
+      id: 0,
+      date: _data,
       peso: peso,
-      percentualeMassaGrassa:
-          Value(double.tryParse(_massaGrassaController.text)),
-      petto: Value(double.tryParse(_pettoController.text)),
-      vita: Value(double.tryParse(_vitaController.text)),
-      coscia: Value(double.tryParse(_cosciaController.text)),
-      note: Value(_noteController.text.isEmpty ? null : _noteController.text),
-      data: _data,
+      bodyFatPercent: double.tryParse(_massaGrassaController.text),
+      petto: double.tryParse(_pettoController.text),
+      vita: double.tryParse(_vitaController.text),
+      coscia: double.tryParse(_cosciaController.text),
+      note: _noteController.text.isEmpty ? null : _noteController.text,
     );
 
-    await archivio.creaMisura(misura);
+    await ref.read(fornitureMisurazioniRemote.notifier).crea(misura);
     if (context.mounted) {
-      vaiAllaPaginaPrincipale(
-        context,
-        const PaginaMisure(),
-      );
+      vaiAllaPaginaPrincipale(context, const PaginaMisure());
     }
   }
 

@@ -19,6 +19,8 @@ class LoginResponse {
     required this.nome,
     required this.cognome,
     required this.email,
+    this.username,
+    this.mobileAbilitato = true,
     this.featureEsercizi = true,
     this.featureSchede = true,
     this.featureModelliSchede = true,
@@ -31,6 +33,8 @@ class LoginResponse {
   final String? nome;
   final String? cognome;
   final String? email;
+  final String? username;
+  final bool mobileAbilitato;
   final bool featureEsercizi;
   final bool featureSchede;
   final bool featureModelliSchede;
@@ -52,6 +56,8 @@ class LoginResponse {
       nome: json['nome'] as String?,
       cognome: json['cognome'] as String?,
       email: json['email'] as String?,
+      username: json['username'] as String?,
+      mobileAbilitato: (json['mobileAbilitato'] as bool?) ?? true,
       featureEsercizi: (json['featureEsercizi'] as bool?) ?? true,
       featureSchede: (json['featureSchede'] as bool?) ?? true,
       featureModelliSchede: (json['featureModelliSchede'] as bool?) ?? true,

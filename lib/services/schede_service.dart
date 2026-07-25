@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/scheda_remota.dart';
 import '../utils/api_config.dart';
+import '../utils/auth_exception.dart';
 
 class SchedeService {
   SchedeService({required this.token, String? baseUrl})
@@ -28,6 +29,7 @@ class SchedeService {
           .map((e) => SchedaRemota.fromJson(e as Map<String, dynamic>))
           .toList();
     }
+    if (response.statusCode == 401) throw const UnauthorizedException();
     throw Exception('Errore schede (${response.statusCode})');
   }
 
@@ -45,6 +47,7 @@ class SchedeService {
           .map((e) => EsercizioInSchedaRemota.fromJson(e as Map<String, dynamic>))
           .toList();
     }
+    if (response.statusCode == 401) throw const UnauthorizedException();
     throw Exception('Errore esercizi (${response.statusCode})');
   }
 
@@ -59,6 +62,7 @@ class SchedeService {
           .map((e) => SchedaRemota.fromJson(e as Map<String, dynamic>))
           .toList();
     }
+    if (response.statusCode == 401) throw const UnauthorizedException();
     throw Exception('Errore modelli (${response.statusCode})');
   }
 

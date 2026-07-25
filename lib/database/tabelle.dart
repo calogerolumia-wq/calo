@@ -6,6 +6,7 @@ class Utenti extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get nome => text()();
   TextColumn get email => text().nullable()();
+  TextColumn get username => text().nullable()();
 }
 
 class Esercizi extends Table {
@@ -90,6 +91,7 @@ class SessioniAllenamento extends Table {
   DateTimeColumn get fine => dateTime().named('endTime').nullable()();
   TextColumn get note => text().nullable()();
   BoolColumn get completata => boolean().withDefault(const Constant(false))();
+  BoolColumn get sincronizzata => boolean().withDefault(const Constant(false))();
 
   List<Index> get indexes => [
         Index('idx_sessioni_utente', 'utente_id'),

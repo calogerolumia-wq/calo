@@ -30,7 +30,9 @@ class _AuthGate extends ConsumerWidget {
     return stato.when(
       loading: () => const _SplashScreen(),
       error: (err, stack) => const PaginaLogin(),
-      data: (auth) => auth.autenticato ? const PaginaDashboard() : const PaginaLogin(),
+      data: (auth) => (auth.autenticato || auth.modalitaOffline)
+          ? const PaginaDashboard()
+          : const PaginaLogin(),
     );
   }
 }

@@ -29,7 +29,19 @@ class _PaginaSessioneState extends ConsumerState<PaginaSessione> {
 
     try {
       final auth = ref.read(gestoreAutenticazione).valueOrNull;
-      if (auth == null || !auth.autenticato || auth.token == null) return;
+      if (auth == null) return;
+
+      // Modalità offline: avvia direttamente con i dati già in SQLite locale
+      if (auth.modalitaOffline) {
+        final idSessione = await ref
+            .read(gestoreSessioneAttiva.notifier)
+            .avviaDaScheda(scheda.id);
+        if (!mounted) return;
+        apriPagina(context, PaginaSessioneInCorso(sessioneId: idSessione));
+        return;
+      }
+
+      if (!auth.autenticato || auth.token == null) return;
 
       final esercizi =
           await SchedeService(token: auth.token!).getEserciziScheda(scheda.id);

@@ -10,6 +10,7 @@ import '../ui/app_drawer.dart';
 import '../ui/app_ui.dart';
 import 'Impostazioni.dart';
 import 'calendario/pagina_calendario_allenamenti.dart';
+import 'login/pagina_login.dart';
 import 'esercizi/pagina_esercizi.dart';
 import 'misure/pagina_misure.dart';
 import 'schede/pagina_schede.dart';
@@ -21,6 +22,9 @@ class PaginaDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(gestoreAutenticazione).valueOrNull;
+    final offline = auth?.modalitaOffline ?? false;
+
     return Scaffold(
       drawer: const AppDrawer(),
       body: Stack(
@@ -30,6 +34,10 @@ class PaginaDashboard extends ConsumerWidget {
             physics: const BouncingScrollPhysics(),
             slivers: [
               const SliverToBoxAdapter(child: _Header()),
+              if (offline)
+                SliverToBoxAdapter(
+                  child: _BannerSessioneScaduta(),
+                ),
               _pad(const _HeroCta(), bottom: AppSpacing.md),
               _pad(const _QuickActions(), bottom: AppSpacing.lg),
               _pad(const _ProgressModule()),
@@ -69,6 +77,65 @@ class _Background extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           stops: const [0.0, 0.45, 1.0],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Banner Sessione Scaduta ──────────────────────────────────────────────────
+
+class _BannerSessioneScaduta extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final c = tema.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.md),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: c.errorContainer.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: c.error.withOpacity(0.30)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off_rounded, color: c.error, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Sessione scaduta. Puoi allenarti offline.',
+                style: tema.textTheme.bodySmall?.copyWith(
+                  color: c.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(
+                  builder: (_) => const PaginaLogin(),
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: c.error,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Login',
+                  style: tema.textTheme.labelSmall?.copyWith(
+                    color: c.onError,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

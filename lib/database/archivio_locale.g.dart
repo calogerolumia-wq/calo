@@ -27,8 +27,14 @@ class $UtentiTable extends Utenti with TableInfo<$UtentiTable, UtentiData> {
   late final GeneratedColumn<String> email = GeneratedColumn<String>(
       'email', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _usernameMeta =
+      const VerificationMeta('username');
   @override
-  List<GeneratedColumn> get $columns => [id, nome, email];
+  late final GeneratedColumn<String> username = GeneratedColumn<String>(
+      'username', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [id, nome, email, username];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -52,6 +58,10 @@ class $UtentiTable extends Utenti with TableInfo<$UtentiTable, UtentiData> {
       context.handle(
           _emailMeta, email.isAcceptableOrUnknown(data['email']!, _emailMeta));
     }
+    if (data.containsKey('username')) {
+      context.handle(_usernameMeta,
+          username.isAcceptableOrUnknown(data['username']!, _usernameMeta));
+    }
     return context;
   }
 
@@ -67,6 +77,8 @@ class $UtentiTable extends Utenti with TableInfo<$UtentiTable, UtentiData> {
           .read(DriftSqlType.string, data['${effectivePrefix}nome'])!,
       email: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}email']),
+      username: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}username']),
     );
   }
 
@@ -80,7 +92,9 @@ class UtentiData extends DataClass implements Insertable<UtentiData> {
   final int id;
   final String nome;
   final String? email;
-  const UtentiData({required this.id, required this.nome, this.email});
+  final String? username;
+  const UtentiData(
+      {required this.id, required this.nome, this.email, this.username});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -88,6 +102,9 @@ class UtentiData extends DataClass implements Insertable<UtentiData> {
     map['nome'] = Variable<String>(nome);
     if (!nullToAbsent || email != null) {
       map['email'] = Variable<String>(email);
+    }
+    if (!nullToAbsent || username != null) {
+      map['username'] = Variable<String>(username);
     }
     return map;
   }
@@ -98,6 +115,9 @@ class UtentiData extends DataClass implements Insertable<UtentiData> {
       nome: Value(nome),
       email:
           email == null && nullToAbsent ? const Value.absent() : Value(email),
+      username: username == null && nullToAbsent
+          ? const Value.absent()
+          : Value(username),
     );
   }
 
@@ -108,6 +128,7 @@ class UtentiData extends DataClass implements Insertable<UtentiData> {
       id: serializer.fromJson<int>(json['id']),
       nome: serializer.fromJson<String>(json['nome']),
       email: serializer.fromJson<String?>(json['email']),
+      username: serializer.fromJson<String?>(json['username']),
     );
   }
   @override
@@ -117,23 +138,27 @@ class UtentiData extends DataClass implements Insertable<UtentiData> {
       'id': serializer.toJson<int>(id),
       'nome': serializer.toJson<String>(nome),
       'email': serializer.toJson<String?>(email),
+      'username': serializer.toJson<String?>(username),
     };
   }
 
   UtentiData copyWith(
           {int? id,
           String? nome,
-          Value<String?> email = const Value.absent()}) =>
+          Value<String?> email = const Value.absent(),
+          Value<String?> username = const Value.absent()}) =>
       UtentiData(
         id: id ?? this.id,
         nome: nome ?? this.nome,
         email: email.present ? email.value : this.email,
+        username: username.present ? username.value : this.username,
       );
   UtentiData copyWithCompanion(UtentiCompanion data) {
     return UtentiData(
       id: data.id.present ? data.id.value : this.id,
       nome: data.nome.present ? data.nome.value : this.nome,
       email: data.email.present ? data.email.value : this.email,
+      username: data.username.present ? data.username.value : this.username,
     );
   }
 
@@ -142,54 +167,65 @@ class UtentiData extends DataClass implements Insertable<UtentiData> {
     return (StringBuffer('UtentiData(')
           ..write('id: $id, ')
           ..write('nome: $nome, ')
-          ..write('email: $email')
+          ..write('email: $email, ')
+          ..write('username: $username')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, nome, email);
+  int get hashCode => Object.hash(id, nome, email, username);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is UtentiData &&
           other.id == this.id &&
           other.nome == this.nome &&
-          other.email == this.email);
+          other.email == this.email &&
+          other.username == this.username);
 }
 
 class UtentiCompanion extends UpdateCompanion<UtentiData> {
   final Value<int> id;
   final Value<String> nome;
   final Value<String?> email;
+  final Value<String?> username;
   const UtentiCompanion({
     this.id = const Value.absent(),
     this.nome = const Value.absent(),
     this.email = const Value.absent(),
+    this.username = const Value.absent(),
   });
   UtentiCompanion.insert({
     this.id = const Value.absent(),
     required String nome,
     this.email = const Value.absent(),
+    this.username = const Value.absent(),
   }) : nome = Value(nome);
   static Insertable<UtentiData> custom({
     Expression<int>? id,
     Expression<String>? nome,
     Expression<String>? email,
+    Expression<String>? username,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (nome != null) 'nome': nome,
       if (email != null) 'email': email,
+      if (username != null) 'username': username,
     });
   }
 
   UtentiCompanion copyWith(
-      {Value<int>? id, Value<String>? nome, Value<String?>? email}) {
+      {Value<int>? id,
+      Value<String>? nome,
+      Value<String?>? email,
+      Value<String?>? username}) {
     return UtentiCompanion(
       id: id ?? this.id,
       nome: nome ?? this.nome,
       email: email ?? this.email,
+      username: username ?? this.username,
     );
   }
 
@@ -205,6 +241,9 @@ class UtentiCompanion extends UpdateCompanion<UtentiData> {
     if (email.present) {
       map['email'] = Variable<String>(email.value);
     }
+    if (username.present) {
+      map['username'] = Variable<String>(username.value);
+    }
     return map;
   }
 
@@ -213,7 +252,8 @@ class UtentiCompanion extends UpdateCompanion<UtentiData> {
     return (StringBuffer('UtentiCompanion(')
           ..write('id: $id, ')
           ..write('nome: $nome, ')
-          ..write('email: $email')
+          ..write('email: $email, ')
+          ..write('username: $username')
           ..write(')'))
         .toString();
   }
@@ -1561,12 +1601,14 @@ class $SchedeEserciziTable extends SchedeEsercizi
     }
     if (data.containsKey('durata_minuti')) {
       context.handle(
-          _durataMinutiMeta, durataMinuti.isAcceptableOrUnknown(
+          _durataMinutiMeta,
+          durataMinuti.isAcceptableOrUnknown(
               data['durata_minuti']!, _durataMinutiMeta));
     }
     if (data.containsKey('note_allenatore')) {
       context.handle(
-          _noteAllenatoreMeta, noteAllenatore.isAcceptableOrUnknown(
+          _noteAllenatoreMeta,
+          noteAllenatore.isAcceptableOrUnknown(
               data['note_allenatore']!, _noteAllenatoreMeta));
     }
     return context;
@@ -1752,8 +1794,10 @@ class SchedeEserciziData extends DataClass
             ? ripetizioniPiramidali.value
             : this.ripetizioniPiramidali,
         peso: peso.present ? peso.value : this.peso,
-        durataMinuti: durataMinuti.present ? durataMinuti.value : this.durataMinuti,
-        noteAllenatore: noteAllenatore.present ? noteAllenatore.value : this.noteAllenatore,
+        durataMinuti:
+            durataMinuti.present ? durataMinuti.value : this.durataMinuti,
+        noteAllenatore:
+            noteAllenatore.present ? noteAllenatore.value : this.noteAllenatore,
       );
   SchedeEserciziData copyWithCompanion(SchedeEserciziCompanion data) {
     return SchedeEserciziData(
@@ -2057,9 +2101,19 @@ class $SessioniAllenamentoTable extends SessioniAllenamento
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("completata" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _sincronizzataMeta =
+      const VerificationMeta('sincronizzata');
+  @override
+  late final GeneratedColumn<bool> sincronizzata = GeneratedColumn<bool>(
+      'sincronizzata', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("sincronizzata" IN (0, 1))'),
+      defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns =>
-      [id, schedaId, utenteId, inizio, fine, note, completata];
+      [id, schedaId, utenteId, inizio, fine, note, completata, sincronizzata];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2104,6 +2158,12 @@ class $SessioniAllenamentoTable extends SessioniAllenamento
           completata.isAcceptableOrUnknown(
               data['completata']!, _completataMeta));
     }
+    if (data.containsKey('sincronizzata')) {
+      context.handle(
+          _sincronizzataMeta,
+          sincronizzata.isAcceptableOrUnknown(
+              data['sincronizzata']!, _sincronizzataMeta));
+    }
     return context;
   }
 
@@ -2128,6 +2188,8 @@ class $SessioniAllenamentoTable extends SessioniAllenamento
           .read(DriftSqlType.string, data['${effectivePrefix}note']),
       completata: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}completata'])!,
+      sincronizzata: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}sincronizzata'])!,
     );
   }
 
@@ -2146,6 +2208,7 @@ class SessioniAllenamentoData extends DataClass
   final DateTime? fine;
   final String? note;
   final bool completata;
+  final bool sincronizzata;
   const SessioniAllenamentoData(
       {required this.id,
       this.schedaId,
@@ -2153,7 +2216,8 @@ class SessioniAllenamentoData extends DataClass
       required this.inizio,
       this.fine,
       this.note,
-      required this.completata});
+      required this.completata,
+      required this.sincronizzata});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2170,6 +2234,7 @@ class SessioniAllenamentoData extends DataClass
       map['note'] = Variable<String>(note);
     }
     map['completata'] = Variable<bool>(completata);
+    map['sincronizzata'] = Variable<bool>(sincronizzata);
     return map;
   }
 
@@ -2184,6 +2249,7 @@ class SessioniAllenamentoData extends DataClass
       fine: fine == null && nullToAbsent ? const Value.absent() : Value(fine),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       completata: Value(completata),
+      sincronizzata: Value(sincronizzata),
     );
   }
 
@@ -2198,6 +2264,7 @@ class SessioniAllenamentoData extends DataClass
       fine: serializer.fromJson<DateTime?>(json['fine']),
       note: serializer.fromJson<String?>(json['note']),
       completata: serializer.fromJson<bool>(json['completata']),
+      sincronizzata: serializer.fromJson<bool>(json['sincronizzata']),
     );
   }
   @override
@@ -2211,6 +2278,7 @@ class SessioniAllenamentoData extends DataClass
       'fine': serializer.toJson<DateTime?>(fine),
       'note': serializer.toJson<String?>(note),
       'completata': serializer.toJson<bool>(completata),
+      'sincronizzata': serializer.toJson<bool>(sincronizzata),
     };
   }
 
@@ -2221,7 +2289,8 @@ class SessioniAllenamentoData extends DataClass
           DateTime? inizio,
           Value<DateTime?> fine = const Value.absent(),
           Value<String?> note = const Value.absent(),
-          bool? completata}) =>
+          bool? completata,
+          bool? sincronizzata}) =>
       SessioniAllenamentoData(
         id: id ?? this.id,
         schedaId: schedaId.present ? schedaId.value : this.schedaId,
@@ -2230,6 +2299,7 @@ class SessioniAllenamentoData extends DataClass
         fine: fine.present ? fine.value : this.fine,
         note: note.present ? note.value : this.note,
         completata: completata ?? this.completata,
+        sincronizzata: sincronizzata ?? this.sincronizzata,
       );
   SessioniAllenamentoData copyWithCompanion(SessioniAllenamentoCompanion data) {
     return SessioniAllenamentoData(
@@ -2241,6 +2311,9 @@ class SessioniAllenamentoData extends DataClass
       note: data.note.present ? data.note.value : this.note,
       completata:
           data.completata.present ? data.completata.value : this.completata,
+      sincronizzata: data.sincronizzata.present
+          ? data.sincronizzata.value
+          : this.sincronizzata,
     );
   }
 
@@ -2253,14 +2326,15 @@ class SessioniAllenamentoData extends DataClass
           ..write('inizio: $inizio, ')
           ..write('fine: $fine, ')
           ..write('note: $note, ')
-          ..write('completata: $completata')
+          ..write('completata: $completata, ')
+          ..write('sincronizzata: $sincronizzata')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, schedaId, utenteId, inizio, fine, note, completata);
+  int get hashCode => Object.hash(
+      id, schedaId, utenteId, inizio, fine, note, completata, sincronizzata);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2271,7 +2345,8 @@ class SessioniAllenamentoData extends DataClass
           other.inizio == this.inizio &&
           other.fine == this.fine &&
           other.note == this.note &&
-          other.completata == this.completata);
+          other.completata == this.completata &&
+          other.sincronizzata == this.sincronizzata);
 }
 
 class SessioniAllenamentoCompanion
@@ -2283,6 +2358,7 @@ class SessioniAllenamentoCompanion
   final Value<DateTime?> fine;
   final Value<String?> note;
   final Value<bool> completata;
+  final Value<bool> sincronizzata;
   const SessioniAllenamentoCompanion({
     this.id = const Value.absent(),
     this.schedaId = const Value.absent(),
@@ -2291,6 +2367,7 @@ class SessioniAllenamentoCompanion
     this.fine = const Value.absent(),
     this.note = const Value.absent(),
     this.completata = const Value.absent(),
+    this.sincronizzata = const Value.absent(),
   });
   SessioniAllenamentoCompanion.insert({
     this.id = const Value.absent(),
@@ -2300,6 +2377,7 @@ class SessioniAllenamentoCompanion
     this.fine = const Value.absent(),
     this.note = const Value.absent(),
     this.completata = const Value.absent(),
+    this.sincronizzata = const Value.absent(),
   })  : utenteId = Value(utenteId),
         inizio = Value(inizio);
   static Insertable<SessioniAllenamentoData> custom({
@@ -2310,6 +2388,7 @@ class SessioniAllenamentoCompanion
     Expression<DateTime>? fine,
     Expression<String>? note,
     Expression<bool>? completata,
+    Expression<bool>? sincronizzata,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2319,6 +2398,7 @@ class SessioniAllenamentoCompanion
       if (fine != null) 'endTime': fine,
       if (note != null) 'note': note,
       if (completata != null) 'completata': completata,
+      if (sincronizzata != null) 'sincronizzata': sincronizzata,
     });
   }
 
@@ -2329,7 +2409,8 @@ class SessioniAllenamentoCompanion
       Value<DateTime>? inizio,
       Value<DateTime?>? fine,
       Value<String?>? note,
-      Value<bool>? completata}) {
+      Value<bool>? completata,
+      Value<bool>? sincronizzata}) {
     return SessioniAllenamentoCompanion(
       id: id ?? this.id,
       schedaId: schedaId ?? this.schedaId,
@@ -2338,6 +2419,7 @@ class SessioniAllenamentoCompanion
       fine: fine ?? this.fine,
       note: note ?? this.note,
       completata: completata ?? this.completata,
+      sincronizzata: sincronizzata ?? this.sincronizzata,
     );
   }
 
@@ -2365,6 +2447,9 @@ class SessioniAllenamentoCompanion
     if (completata.present) {
       map['completata'] = Variable<bool>(completata.value);
     }
+    if (sincronizzata.present) {
+      map['sincronizzata'] = Variable<bool>(sincronizzata.value);
+    }
     return map;
   }
 
@@ -2377,7 +2462,8 @@ class SessioniAllenamentoCompanion
           ..write('inizio: $inizio, ')
           ..write('fine: $fine, ')
           ..write('note: $note, ')
-          ..write('completata: $completata')
+          ..write('completata: $completata, ')
+          ..write('sincronizzata: $sincronizzata')
           ..write(')'))
         .toString();
   }
@@ -2433,18 +2519,6 @@ class $SerieRegistrateTable extends SerieRegistrate
   late final GeneratedColumn<double> peso = GeneratedColumn<double>(
       'peso', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
-  static const VerificationMeta _durataMinutiMeta =
-      const VerificationMeta('durataMinuti');
-  @override
-  late final GeneratedColumn<int> durataMinuti = GeneratedColumn<int>(
-      'durata_minuti', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _noteAllenatoreMeta =
-      const VerificationMeta('noteAllenatore');
-  @override
-  late final GeneratedColumn<String> noteAllenatore = GeneratedColumn<String>(
-      'note_allenatore', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _rpeMeta = const VerificationMeta('rpe');
   @override
   late final GeneratedColumn<double> rpe = GeneratedColumn<double>(
@@ -3597,11 +3671,13 @@ typedef $$UtentiTableCreateCompanionBuilder = UtentiCompanion Function({
   Value<int> id,
   required String nome,
   Value<String?> email,
+  Value<String?> username,
 });
 typedef $$UtentiTableUpdateCompanionBuilder = UtentiCompanion Function({
   Value<int> id,
   Value<String> nome,
   Value<String?> email,
+  Value<String?> username,
 });
 
 final class $$UtentiTableReferences
@@ -3673,6 +3749,9 @@ class $$UtentiTableFilterComposer
 
   ColumnFilters<String> get email => $composableBuilder(
       column: $table.email, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get username => $composableBuilder(
+      column: $table.username, builder: (column) => ColumnFilters(column));
 
   Expression<bool> schedeRefs(
       Expression<bool> Function($$SchedeTableFilterComposer f) f) {
@@ -3755,6 +3834,9 @@ class $$UtentiTableOrderingComposer
 
   ColumnOrderings<String> get email => $composableBuilder(
       column: $table.email, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get username => $composableBuilder(
+      column: $table.username, builder: (column) => ColumnOrderings(column));
 }
 
 class $$UtentiTableAnnotationComposer
@@ -3774,6 +3856,9 @@ class $$UtentiTableAnnotationComposer
 
   GeneratedColumn<String> get email =>
       $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get username =>
+      $composableBuilder(column: $table.username, builder: (column) => column);
 
   Expression<T> schedeRefs<T extends Object>(
       Expression<T> Function($$SchedeTableAnnotationComposer a) f) {
@@ -3870,21 +3955,25 @@ class $$UtentiTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             Value<String> nome = const Value.absent(),
             Value<String?> email = const Value.absent(),
+            Value<String?> username = const Value.absent(),
           }) =>
               UtentiCompanion(
             id: id,
             nome: nome,
             email: email,
+            username: username,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String nome,
             Value<String?> email = const Value.absent(),
+            Value<String?> username = const Value.absent(),
           }) =>
               UtentiCompanion.insert(
             id: id,
             nome: nome,
             email: email,
+            username: username,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) =>
@@ -4908,6 +4997,8 @@ typedef $$SchedeEserciziTableCreateCompanionBuilder = SchedeEserciziCompanion
   Value<int> ripetizioni,
   Value<String?> ripetizioniPiramidali,
   Value<double?> peso,
+  Value<int?> durataMinuti,
+  Value<String?> noteAllenatore,
 });
 typedef $$SchedeEserciziTableUpdateCompanionBuilder = SchedeEserciziCompanion
     Function({
@@ -4921,6 +5012,8 @@ typedef $$SchedeEserciziTableUpdateCompanionBuilder = SchedeEserciziCompanion
   Value<int> ripetizioni,
   Value<String?> ripetizioniPiramidali,
   Value<double?> peso,
+  Value<int?> durataMinuti,
+  Value<String?> noteAllenatore,
 });
 
 final class $$SchedeEserciziTableReferences extends BaseReferences<
@@ -4991,6 +5084,13 @@ class $$SchedeEserciziTableFilterComposer
 
   ColumnFilters<double> get peso => $composableBuilder(
       column: $table.peso, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get durataMinuti => $composableBuilder(
+      column: $table.durataMinuti, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get noteAllenatore => $composableBuilder(
+      column: $table.noteAllenatore,
+      builder: (column) => ColumnFilters(column));
 
   $$SchedeTableFilterComposer get schedaId {
     final $$SchedeTableFilterComposer composer = $composerBuilder(
@@ -5069,6 +5169,14 @@ class $$SchedeEserciziTableOrderingComposer
   ColumnOrderings<double> get peso => $composableBuilder(
       column: $table.peso, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get durataMinuti => $composableBuilder(
+      column: $table.durataMinuti,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get noteAllenatore => $composableBuilder(
+      column: $table.noteAllenatore,
+      builder: (column) => ColumnOrderings(column));
+
   $$SchedeTableOrderingComposer get schedaId {
     final $$SchedeTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -5142,6 +5250,12 @@ class $$SchedeEserciziTableAnnotationComposer
 
   GeneratedColumn<double> get peso =>
       $composableBuilder(column: $table.peso, builder: (column) => column);
+
+  GeneratedColumn<int> get durataMinuti => $composableBuilder(
+      column: $table.durataMinuti, builder: (column) => column);
+
+  GeneratedColumn<String> get noteAllenatore => $composableBuilder(
+      column: $table.noteAllenatore, builder: (column) => column);
 
   $$SchedeTableAnnotationComposer get schedaId {
     final $$SchedeTableAnnotationComposer composer = $composerBuilder(
@@ -5218,6 +5332,8 @@ class $$SchedeEserciziTableTableManager extends RootTableManager<
             Value<int> ripetizioni = const Value.absent(),
             Value<String?> ripetizioniPiramidali = const Value.absent(),
             Value<double?> peso = const Value.absent(),
+            Value<int?> durataMinuti = const Value.absent(),
+            Value<String?> noteAllenatore = const Value.absent(),
           }) =>
               SchedeEserciziCompanion(
             id: id,
@@ -5230,6 +5346,8 @@ class $$SchedeEserciziTableTableManager extends RootTableManager<
             ripetizioni: ripetizioni,
             ripetizioniPiramidali: ripetizioniPiramidali,
             peso: peso,
+            durataMinuti: durataMinuti,
+            noteAllenatore: noteAllenatore,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -5242,6 +5360,8 @@ class $$SchedeEserciziTableTableManager extends RootTableManager<
             Value<int> ripetizioni = const Value.absent(),
             Value<String?> ripetizioniPiramidali = const Value.absent(),
             Value<double?> peso = const Value.absent(),
+            Value<int?> durataMinuti = const Value.absent(),
+            Value<String?> noteAllenatore = const Value.absent(),
           }) =>
               SchedeEserciziCompanion.insert(
             id: id,
@@ -5254,6 +5374,8 @@ class $$SchedeEserciziTableTableManager extends RootTableManager<
             ripetizioni: ripetizioni,
             ripetizioniPiramidali: ripetizioniPiramidali,
             peso: peso,
+            durataMinuti: durataMinuti,
+            noteAllenatore: noteAllenatore,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (
@@ -5331,6 +5453,7 @@ typedef $$SessioniAllenamentoTableCreateCompanionBuilder
   Value<DateTime?> fine,
   Value<String?> note,
   Value<bool> completata,
+  Value<bool> sincronizzata,
 });
 typedef $$SessioniAllenamentoTableUpdateCompanionBuilder
     = SessioniAllenamentoCompanion Function({
@@ -5341,6 +5464,7 @@ typedef $$SessioniAllenamentoTableUpdateCompanionBuilder
   Value<DateTime?> fine,
   Value<String?> note,
   Value<bool> completata,
+  Value<bool> sincronizzata,
 });
 
 final class $$SessioniAllenamentoTableReferences extends BaseReferences<
@@ -5417,6 +5541,9 @@ class $$SessioniAllenamentoTableFilterComposer
 
   ColumnFilters<bool> get completata => $composableBuilder(
       column: $table.completata, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get sincronizzata => $composableBuilder(
+      column: $table.sincronizzata, builder: (column) => ColumnFilters(column));
 
   $$SchedeTableFilterComposer get schedaId {
     final $$SchedeTableFilterComposer composer = $composerBuilder(
@@ -5504,6 +5631,10 @@ class $$SessioniAllenamentoTableOrderingComposer
   ColumnOrderings<bool> get completata => $composableBuilder(
       column: $table.completata, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get sincronizzata => $composableBuilder(
+      column: $table.sincronizzata,
+      builder: (column) => ColumnOrderings(column));
+
   $$SchedeTableOrderingComposer get schedaId {
     final $$SchedeTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -5568,6 +5699,9 @@ class $$SessioniAllenamentoTableAnnotationComposer
 
   GeneratedColumn<bool> get completata => $composableBuilder(
       column: $table.completata, builder: (column) => column);
+
+  GeneratedColumn<bool> get sincronizzata => $composableBuilder(
+      column: $table.sincronizzata, builder: (column) => column);
 
   $$SchedeTableAnnotationComposer get schedaId {
     final $$SchedeTableAnnotationComposer composer = $composerBuilder(
@@ -5665,6 +5799,7 @@ class $$SessioniAllenamentoTableTableManager extends RootTableManager<
             Value<DateTime?> fine = const Value.absent(),
             Value<String?> note = const Value.absent(),
             Value<bool> completata = const Value.absent(),
+            Value<bool> sincronizzata = const Value.absent(),
           }) =>
               SessioniAllenamentoCompanion(
             id: id,
@@ -5674,6 +5809,7 @@ class $$SessioniAllenamentoTableTableManager extends RootTableManager<
             fine: fine,
             note: note,
             completata: completata,
+            sincronizzata: sincronizzata,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -5683,6 +5819,7 @@ class $$SessioniAllenamentoTableTableManager extends RootTableManager<
             Value<DateTime?> fine = const Value.absent(),
             Value<String?> note = const Value.absent(),
             Value<bool> completata = const Value.absent(),
+            Value<bool> sincronizzata = const Value.absent(),
           }) =>
               SessioniAllenamentoCompanion.insert(
             id: id,
@@ -5692,6 +5829,7 @@ class $$SessioniAllenamentoTableTableManager extends RootTableManager<
             fine: fine,
             note: note,
             completata: completata,
+            sincronizzata: sincronizzata,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/api_config.dart';
+import '../utils/auth_exception.dart';
 
 class SessioniService {
   final String token;
@@ -36,6 +37,7 @@ class SessioniService {
         )
         .timeout(const Duration(seconds: 30));
 
+    if (response.statusCode == 401) throw const UnauthorizedException();
     if (response.statusCode != 200) {
       throw Exception('Sync sessione fallita: ${response.statusCode}');
     }
