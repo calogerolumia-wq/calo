@@ -42,6 +42,10 @@ class EsercizioInSchedaRemota {
     required this.nomeEsercizio,
     this.immagineUrl,
     this.gruppoMuscolare,
+    this.ripetizioniSchema,
+    this.pesoSchema,
+    this.supersetGruppo,
+    this.note,
   });
 
   final int id;
@@ -54,6 +58,10 @@ class EsercizioInSchedaRemota {
   final String nomeEsercizio;
   final String? immagineUrl;
   final String? gruppoMuscolare;
+  final String? ripetizioniSchema;
+  final String? pesoSchema;
+  final int? supersetGruppo;
+  final String? note;
 
   String get sezione => giorno == 0 ? 'Allenamento' : 'Giorno $giorno';
 
@@ -69,6 +77,10 @@ class EsercizioInSchedaRemota {
       nomeEsercizio: json['nomeEsercizio'] as String,
       immagineUrl: json['immagineUrl'] as String?,
       gruppoMuscolare: json['gruppoMuscolare'] as String?,
+      ripetizioniSchema: json['ripetizioniSchema'] as String?,
+      pesoSchema: json['pesoSchema'] as String?,
+      supersetGruppo: (json['supersetGruppo'] as num?)?.toInt(),
+      note: json['note'] as String?,
     );
   }
 }

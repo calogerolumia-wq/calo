@@ -1320,11 +1320,10 @@ class _ContenutoEsercizioFocus extends StatelessWidget {
                 icona: Icons.timer_outlined,
                 testo: '$durataMinuti min',
               ),
-            if (elemento.peso != null)
-              _ChipTarget(
-                icona: Icons.scale,
-                testo: '${elemento.peso} kg',
-              ),
+            if (elemento.pesoSchema?.isNotEmpty == true)
+              _ChipTarget(icona: Icons.scale, testo: elemento.pesoSchema!)
+            else if (elemento.peso != null)
+              _ChipTarget(icona: Icons.scale, testo: '${elemento.peso} kg'),
             if (testoGruppo.isNotEmpty)
               _ChipTarget(
                 icona: infoGruppo.tipo == TipoGruppoAllenamento.superset
@@ -1455,11 +1454,10 @@ class _ContenutoEsercizioCompatto extends StatelessWidget {
                 icona: Icons.timer_outlined,
                 testo: '$durataMinuti min',
               ),
-            if (elemento.peso != null)
-              _ChipTarget(
-                icona: Icons.scale,
-                testo: '${elemento.peso} kg',
-              ),
+            if (elemento.pesoSchema?.isNotEmpty == true)
+              _ChipTarget(icona: Icons.scale, testo: elemento.pesoSchema!)
+            else if (elemento.peso != null)
+              _ChipTarget(icona: Icons.scale, testo: '${elemento.peso} kg'),
             if (testoGruppo.isNotEmpty)
               _ChipTarget(
                 icona: infoGruppo.tipo == TipoGruppoAllenamento.superset

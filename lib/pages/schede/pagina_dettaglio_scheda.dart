@@ -270,6 +270,42 @@ class PaginaDettaglioScheda extends ConsumerWidget {
   }
 }
 
+List<Widget> _buildListaConSuperset(List<EsercizioInSchedaRemota> elementi) {
+  final sorted = [...elementi]..sort((a, b) {
+      final ga = a.supersetGruppo ?? 999;
+      final gb = b.supersetGruppo ?? 999;
+      return ga - gb;
+    });
+
+  final result = <Widget>[];
+  int? lastGruppo;
+  for (final e in sorted) {
+    if (e.supersetGruppo != null && e.supersetGruppo != lastGruppo) {
+      result.add(_SupersetHeader(gruppo: e.supersetGruppo!));
+      lastGruppo = e.supersetGruppo;
+    } else if (e.supersetGruppo == null) {
+      lastGruppo = null;
+    }
+    result.add(_RigaEsercizio(elemento: e));
+  }
+  return result;
+}
+
+Color _supersetColor(int gruppo) {
+  const colors = [
+    Color(0xFF3B82F6),
+    Color(0xFF10B981),
+    Color(0xFFF59E0B),
+    Color(0xFF8B5CF6),
+  ];
+  return colors[(gruppo - 1) % colors.length];
+}
+
+String _supersetLabel(int gruppo) {
+  const labels = ['A', 'B', 'C', 'D'];
+  return labels[(gruppo - 1) % labels.length];
+}
+
 class _GruppoSezione {
   const _GruppoSezione({required this.nome, required this.elementi});
   final String nome;
@@ -310,9 +346,52 @@ class _TabSezioneEsercizi extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        for (final elemento in gruppo.elementi)
-          _RigaEsercizio(elemento: elemento),
+        ..._buildListaConSuperset(gruppo.elementi),
       ],
+    );
+  }
+}
+
+class _SupersetHeader extends StatelessWidget {
+  const _SupersetHeader({required this.gruppo});
+  final int gruppo;
+
+  @override
+  Widget build(BuildContext context) {
+    final colore = _supersetColor(gruppo);
+    final label = _supersetLabel(gruppo);
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: colore.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: colore.withOpacity(0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.swap_horiz_rounded, size: 14, color: colore),
+                const SizedBox(width: 5),
+                Text(
+                  'Superset $label',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: colore,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Divider(color: colore.withOpacity(0.3), thickness: 1)),
+        ],
+      ),
     );
   }
 }
@@ -326,67 +405,115 @@ class _RigaEsercizio extends StatelessWidget {
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final colori = tema.colorScheme;
+    final haSuperset = elemento.supersetGruppo != null;
+    final coloreSuperset = haSuperset ? _supersetColor(elemento.supersetGruppo!) : null;
+
+    final ripsText = (elemento.ripetizioniSchema?.isNotEmpty == true)
+        ? elemento.ripetizioniSchema!
+        : '${elemento.ripetizioni} rep';
+    final pesoText = (elemento.pesoSchema?.isNotEmpty == true)
+        ? elemento.pesoSchema!
+        : (elemento.pesoTarget != null && elemento.pesoTarget! > 0
+            ? '${elemento.pesoTarget} kg'
+            : null);
 
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: colori.onSurface.withOpacity(0.08)),
+        side: BorderSide(
+          color: haSuperset
+              ? coloreSuperset!.withOpacity(0.4)
+              : colori.onSurface.withOpacity(0.08),
+          width: haSuperset ? 1.5 : 1,
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: _ImmagineEsercizio(url: elemento.immagineUrl),
+            if (haSuperset)
+              Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  color: coloreSuperset,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(18),
+                    bottomLeft: Radius.circular(18),
+                  ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        elemento.nomeEsercizio,
-                        style: tema.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          height: 1.1,
+              ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: _ImmagineEsercizio(url: elemento.immagineUrl),
                         ),
-                      ),
-                      if (elemento.gruppoMuscolare != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          elemento.gruppoMuscolare!,
-                          style: tema.textTheme.bodySmall?.copyWith(
-                            color: colori.onSurface.withOpacity(0.65),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                elemento.nomeEsercizio,
+                                style: tema.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.1,
+                                ),
+                              ),
+                              if (elemento.gruppoMuscolare != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  elemento.gruppoMuscolare!,
+                                  style: tema.textTheme.bodySmall?.copyWith(
+                                    color: colori.onSurface.withOpacity(0.65),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _ChipInfo(icona: Icons.repeat, testo: '${elemento.serie} serie'),
+                        _ChipInfo(icona: Icons.refresh, testo: ripsText),
+                        if (pesoText != null)
+                          _ChipInfo(icona: Icons.scale, testo: pesoText),
+                      ],
+                    ),
+                    if (elemento.note?.isNotEmpty == true) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.notes_rounded, size: 13, color: colori.onSurface.withOpacity(0.5)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              elemento.note!,
+                              style: tema.textTheme.bodySmall?.copyWith(
+                                color: colori.onSurface.withOpacity(0.6),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _ChipInfo(
-                    icona: Icons.repeat,
-                    testo: '${elemento.serie} serie'),
-                _ChipInfo(
-                    icona: Icons.refresh,
-                    testo: '${elemento.ripetizioni} rep'),
-                if (elemento.pesoTarget != null && elemento.pesoTarget! > 0)
-                  _ChipInfo(
-                      icona: Icons.scale,
-                      testo: '${elemento.pesoTarget} kg'),
-              ],
+              ),
             ),
           ],
         ),
