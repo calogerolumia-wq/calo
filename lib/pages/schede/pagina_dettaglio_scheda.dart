@@ -291,6 +291,14 @@ List<Widget> _buildListaConSuperset(List<EsercizioInSchedaRemota> elementi) {
   return result;
 }
 
+String _formatRecupero(int sec) {
+  final m = sec ~/ 60;
+  final s = sec % 60;
+  if (m > 0 && s > 0) return '${m}m ${s}s';
+  if (m > 0) return '$m min';
+  return '${s}s';
+}
+
 Color _supersetColor(int gruppo) {
   const colors = [
     Color(0xFF3B82F6),
@@ -491,6 +499,11 @@ class _RigaEsercizio extends StatelessWidget {
                         _ChipInfo(icona: Icons.refresh, testo: ripsText),
                         if (pesoText != null)
                           _ChipInfo(icona: Icons.scale, testo: pesoText),
+                        if (elemento.recuperoSecondi != null)
+                          _ChipInfo(
+                            icona: Icons.timer_outlined,
+                            testo: _formatRecupero(elemento.recuperoSecondi!),
+                          ),
                       ],
                     ),
                     if (elemento.note?.isNotEmpty == true) ...[

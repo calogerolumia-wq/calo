@@ -46,6 +46,7 @@ class EsercizioInSchedaRemota {
     this.pesoSchema,
     this.supersetGruppo,
     this.note,
+    this.recuperoSecondi,
   });
 
   final int id;
@@ -62,6 +63,7 @@ class EsercizioInSchedaRemota {
   final String? pesoSchema;
   final int? supersetGruppo;
   final String? note;
+  final int? recuperoSecondi;
 
   String get sezione => giorno == 0 ? 'Allenamento' : 'Giorno $giorno';
 
@@ -81,6 +83,7 @@ class EsercizioInSchedaRemota {
       pesoSchema: json['pesoSchema'] as String?,
       supersetGruppo: (json['supersetGruppo'] as num?)?.toInt(),
       note: json['note'] as String?,
+      recuperoSecondi: (json['recuperoSecondi'] as num?)?.toInt(),
     );
   }
 }

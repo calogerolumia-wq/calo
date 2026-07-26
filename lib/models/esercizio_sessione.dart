@@ -54,6 +54,7 @@ class EsercizioSessione {
       peso: e.pesoTarget,
       pesoSchema: e.pesoSchema,
       noteAllenatore: e.note,
+      recuperoSecondi: e.recuperoSecondi,
     );
   }
 }
