@@ -123,7 +123,7 @@ class ArchivioLocale extends _$ArchivioLocale {
   ArchivioLocale() : super(_apriConnessione());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -149,6 +149,9 @@ class ArchivioLocale extends _$ArchivioLocale {
           }
           if (from < 7) {
             await m.createTable(credenzialeSalvate);
+          }
+          if (from < 8) {
+            await m.addColumn(serieRegistrate, serieRegistrate.ripetizioniTesto);
           }
         },
       );
@@ -1030,6 +1033,7 @@ class ArchivioLocale extends _$ArchivioLocale {
     required int esercizioId,
     required int indiceSerie,
     required int ripetizioni,
+    String? ripetizioniTesto,
     double? peso,
     double? rpe,
     int? secondiTempo,
@@ -1041,6 +1045,7 @@ class ArchivioLocale extends _$ArchivioLocale {
         esercizioId: esercizioId,
         indiceSerie: indiceSerie,
         ripetizioni: ripetizioni,
+        ripetizioniTesto: Value(ripetizioniTesto),
         peso: Value(peso),
         rpe: Value(rpe),
         secondiTempo: Value(secondiTempo),

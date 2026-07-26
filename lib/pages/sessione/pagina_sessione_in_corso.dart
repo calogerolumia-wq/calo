@@ -667,6 +667,7 @@ class _PaginaSessioneInCorsoState extends ConsumerState<PaginaSessioneInCorso> {
       esercizioId: esercizio.esercizioId,
       indiceSerie: dati.indiceSerie,
       ripetizioni: dati.ripetizioni,
+      ripetizioniTesto: dati.ripetizioniTesto,
       peso: dati.peso,
       rpe: dati.rpe,
       secondiTempo: dati.secondiTempo,
@@ -1320,6 +1321,11 @@ class _ContenutoEsercizioFocus extends StatelessWidget {
                 icona: Icons.timer_outlined,
                 testo: '$durataMinuti min',
               ),
+            if (elemento.recuperoSecondi != null)
+              _ChipTarget(
+                icona: Icons.hourglass_bottom_rounded,
+                testo: _formatRecuperoSessione(elemento.recuperoSecondi!),
+              ),
             if (elemento.pesoSchema?.isNotEmpty == true)
               _ChipTarget(icona: Icons.scale, testo: elemento.pesoSchema!)
             else if (elemento.peso != null)
@@ -1454,6 +1460,11 @@ class _ContenutoEsercizioCompatto extends StatelessWidget {
                 icona: Icons.timer_outlined,
                 testo: '$durataMinuti min',
               ),
+            if (elemento.recuperoSecondi != null)
+              _ChipTarget(
+                icona: Icons.hourglass_bottom_rounded,
+                testo: _formatRecuperoSessione(elemento.recuperoSecondi!),
+              ),
             if (elemento.pesoSchema?.isNotEmpty == true)
               _ChipTarget(icona: Icons.scale, testo: elemento.pesoSchema!)
             else if (elemento.peso != null)
@@ -1571,6 +1582,14 @@ class _IntestazioneEsercizio extends StatelessWidget {
       ],
     );
   }
+}
+
+String _formatRecuperoSessione(int sec) {
+  final m = sec ~/ 60;
+  final s = sec % 60;
+  if (m > 0 && s > 0) return '${m}m ${s}s recupero';
+  if (m > 0) return '$m min recupero';
+  return '${s}s recupero';
 }
 
 String _rigaMetaEsercizio(EsercizioSessione esercizio) {
@@ -1794,10 +1813,11 @@ class _ChipSerie extends StatelessWidget {
     final tema = Theme.of(context);
     final colori = tema.colorScheme;
 
+    final repsLabel = record.ripetizioniTesto ?? '${record.ripetizioni}';
     final peso = record.peso == null ? null : '${record.peso} kg';
     final testo = [
       'S${record.indiceSerie}',
-      '${record.ripetizioni} rep',
+      '$repsLabel rep',
       if (peso != null) peso,
     ].join(' • ');
 
@@ -2134,6 +2154,7 @@ class DatiSerieIngresso {
   const DatiSerieIngresso({
     required this.indiceSerie,
     required this.ripetizioni,
+    this.ripetizioniTesto,
     this.peso,
     this.rpe,
     this.secondiTempo,
@@ -2142,6 +2163,7 @@ class DatiSerieIngresso {
 
   final int indiceSerie;
   final int ripetizioni;
+  final String? ripetizioniTesto;
   final double? peso;
   final double? rpe;
   final int? secondiTempo;
@@ -2225,11 +2247,14 @@ class _PannelloSerieState extends State<_PannelloSerie> {
                 Row(
                   children: [
                     Expanded(
-                      child: _CampoNumero(
+                      child: TextField(
                         controller: _ripetizioniController,
-                        etichetta: 'Ripetizioni',
-                        obbligatorio: true,
-                        intero: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Ripetizioni',
+                          hintText: 'es. 12 · 10/8/6 · 12+10',
+                        ),
+                        keyboardType: TextInputType.text,
+                        textInputAction: TextInputAction.next,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -2294,14 +2319,19 @@ class _PannelloSerieState extends State<_PannelloSerie> {
   }
 
   void _salva() {
-    final ripetizioni = int.tryParse(_ripetizioniController.text.trim());
-    if (ripetizioni == null || ripetizioni <= 0) return;
+    final testo = _ripetizioniController.text.trim();
+    if (testo.isEmpty) return;
+    final match = RegExp(r'\d+').firstMatch(testo);
+    final ripetizioni = match != null ? int.tryParse(match.group(0)!) ?? 0 : 0;
+    if (ripetizioni <= 0) return;
+    final ripetizioniTesto = int.tryParse(testo) == null ? testo : null;
 
     Navigator.pop(
       context,
       DatiSerieIngresso(
         indiceSerie: widget.indiceSerie,
         ripetizioni: ripetizioni,
+        ripetizioniTesto: ripetizioniTesto,
         peso: double.tryParse(_pesoController.text.trim()),
         rpe: double.tryParse(_rpeController.text.trim()),
         secondiTempo: int.tryParse(_tempoController.text.trim()),

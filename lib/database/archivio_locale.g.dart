@@ -2514,6 +2514,12 @@ class $SerieRegistrateTable extends SerieRegistrate
   late final GeneratedColumn<int> ripetizioni = GeneratedColumn<int>(
       'ripetizioni', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _ripetizioniTestoMeta =
+      const VerificationMeta('ripetizioniTesto');
+  @override
+  late final GeneratedColumn<String> ripetizioniTesto = GeneratedColumn<String>(
+      'ripetizioni_testo', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _pesoMeta = const VerificationMeta('peso');
   @override
   late final GeneratedColumn<double> peso = GeneratedColumn<double>(
@@ -2550,6 +2556,7 @@ class $SerieRegistrateTable extends SerieRegistrate
         esercizioId,
         indiceSerie,
         ripetizioni,
+        ripetizioniTesto,
         peso,
         rpe,
         secondiTempo,
@@ -2602,6 +2609,12 @@ class $SerieRegistrateTable extends SerieRegistrate
     } else if (isInserting) {
       context.missing(_ripetizioniMeta);
     }
+    if (data.containsKey('ripetizioni_testo')) {
+      context.handle(
+          _ripetizioniTestoMeta,
+          ripetizioniTesto.isAcceptableOrUnknown(
+              data['ripetizioni_testo']!, _ripetizioniTestoMeta));
+    }
     if (data.containsKey('peso')) {
       context.handle(
           _pesoMeta, peso.isAcceptableOrUnknown(data['peso']!, _pesoMeta));
@@ -2643,6 +2656,8 @@ class $SerieRegistrateTable extends SerieRegistrate
           .read(DriftSqlType.int, data['${effectivePrefix}serieIndex'])!,
       ripetizioni: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}ripetizioni'])!,
+      ripetizioniTesto: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}ripetizioni_testo']),
       peso: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}peso']),
       rpe: attachedDatabase.typeMapping
@@ -2669,6 +2684,7 @@ class SerieRegistrateData extends DataClass
   final int esercizioId;
   final int indiceSerie;
   final int ripetizioni;
+  final String? ripetizioniTesto;
   final double? peso;
   final double? rpe;
   final int? secondiTempo;
@@ -2680,6 +2696,7 @@ class SerieRegistrateData extends DataClass
       required this.esercizioId,
       required this.indiceSerie,
       required this.ripetizioni,
+      this.ripetizioniTesto,
       this.peso,
       this.rpe,
       this.secondiTempo,
@@ -2693,6 +2710,9 @@ class SerieRegistrateData extends DataClass
     map['esercizio_id'] = Variable<int>(esercizioId);
     map['serieIndex'] = Variable<int>(indiceSerie);
     map['ripetizioni'] = Variable<int>(ripetizioni);
+    if (!nullToAbsent || ripetizioniTesto != null) {
+      map['ripetizioni_testo'] = Variable<String>(ripetizioniTesto);
+    }
     if (!nullToAbsent || peso != null) {
       map['peso'] = Variable<double>(peso);
     }
@@ -2716,6 +2736,9 @@ class SerieRegistrateData extends DataClass
       esercizioId: Value(esercizioId),
       indiceSerie: Value(indiceSerie),
       ripetizioni: Value(ripetizioni),
+      ripetizioniTesto: ripetizioniTesto == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ripetizioniTesto),
       peso: peso == null && nullToAbsent ? const Value.absent() : Value(peso),
       rpe: rpe == null && nullToAbsent ? const Value.absent() : Value(rpe),
       secondiTempo: secondiTempo == null && nullToAbsent
@@ -2735,6 +2758,7 @@ class SerieRegistrateData extends DataClass
       esercizioId: serializer.fromJson<int>(json['esercizioId']),
       indiceSerie: serializer.fromJson<int>(json['indiceSerie']),
       ripetizioni: serializer.fromJson<int>(json['ripetizioni']),
+      ripetizioniTesto: serializer.fromJson<String?>(json['ripetizioniTesto']),
       peso: serializer.fromJson<double?>(json['peso']),
       rpe: serializer.fromJson<double?>(json['rpe']),
       secondiTempo: serializer.fromJson<int?>(json['secondiTempo']),
@@ -2751,6 +2775,7 @@ class SerieRegistrateData extends DataClass
       'esercizioId': serializer.toJson<int>(esercizioId),
       'indiceSerie': serializer.toJson<int>(indiceSerie),
       'ripetizioni': serializer.toJson<int>(ripetizioni),
+      'ripetizioniTesto': serializer.toJson<String?>(ripetizioniTesto),
       'peso': serializer.toJson<double?>(peso),
       'rpe': serializer.toJson<double?>(rpe),
       'secondiTempo': serializer.toJson<int?>(secondiTempo),
@@ -2765,6 +2790,7 @@ class SerieRegistrateData extends DataClass
           int? esercizioId,
           int? indiceSerie,
           int? ripetizioni,
+          Value<String?> ripetizioniTesto = const Value.absent(),
           Value<double?> peso = const Value.absent(),
           Value<double?> rpe = const Value.absent(),
           Value<int?> secondiTempo = const Value.absent(),
@@ -2776,6 +2802,9 @@ class SerieRegistrateData extends DataClass
         esercizioId: esercizioId ?? this.esercizioId,
         indiceSerie: indiceSerie ?? this.indiceSerie,
         ripetizioni: ripetizioni ?? this.ripetizioni,
+        ripetizioniTesto: ripetizioniTesto.present
+            ? ripetizioniTesto.value
+            : this.ripetizioniTesto,
         peso: peso.present ? peso.value : this.peso,
         rpe: rpe.present ? rpe.value : this.rpe,
         secondiTempo:
@@ -2794,6 +2823,9 @@ class SerieRegistrateData extends DataClass
           data.indiceSerie.present ? data.indiceSerie.value : this.indiceSerie,
       ripetizioni:
           data.ripetizioni.present ? data.ripetizioni.value : this.ripetizioni,
+      ripetizioniTesto: data.ripetizioniTesto.present
+          ? data.ripetizioniTesto.value
+          : this.ripetizioniTesto,
       peso: data.peso.present ? data.peso.value : this.peso,
       rpe: data.rpe.present ? data.rpe.value : this.rpe,
       secondiTempo: data.secondiTempo.present
@@ -2812,6 +2844,7 @@ class SerieRegistrateData extends DataClass
           ..write('esercizioId: $esercizioId, ')
           ..write('indiceSerie: $indiceSerie, ')
           ..write('ripetizioni: $ripetizioni, ')
+          ..write('ripetizioniTesto: $ripetizioniTesto, ')
           ..write('peso: $peso, ')
           ..write('rpe: $rpe, ')
           ..write('secondiTempo: $secondiTempo, ')
@@ -2823,7 +2856,7 @@ class SerieRegistrateData extends DataClass
 
   @override
   int get hashCode => Object.hash(id, sessioneId, esercizioId, indiceSerie,
-      ripetizioni, peso, rpe, secondiTempo, note, dataOra);
+      ripetizioni, ripetizioniTesto, peso, rpe, secondiTempo, note, dataOra);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2833,6 +2866,7 @@ class SerieRegistrateData extends DataClass
           other.esercizioId == this.esercizioId &&
           other.indiceSerie == this.indiceSerie &&
           other.ripetizioni == this.ripetizioni &&
+          other.ripetizioniTesto == this.ripetizioniTesto &&
           other.peso == this.peso &&
           other.rpe == this.rpe &&
           other.secondiTempo == this.secondiTempo &&
@@ -2846,6 +2880,7 @@ class SerieRegistrateCompanion extends UpdateCompanion<SerieRegistrateData> {
   final Value<int> esercizioId;
   final Value<int> indiceSerie;
   final Value<int> ripetizioni;
+  final Value<String?> ripetizioniTesto;
   final Value<double?> peso;
   final Value<double?> rpe;
   final Value<int?> secondiTempo;
@@ -2857,6 +2892,7 @@ class SerieRegistrateCompanion extends UpdateCompanion<SerieRegistrateData> {
     this.esercizioId = const Value.absent(),
     this.indiceSerie = const Value.absent(),
     this.ripetizioni = const Value.absent(),
+    this.ripetizioniTesto = const Value.absent(),
     this.peso = const Value.absent(),
     this.rpe = const Value.absent(),
     this.secondiTempo = const Value.absent(),
@@ -2869,6 +2905,7 @@ class SerieRegistrateCompanion extends UpdateCompanion<SerieRegistrateData> {
     required int esercizioId,
     required int indiceSerie,
     required int ripetizioni,
+    this.ripetizioniTesto = const Value.absent(),
     this.peso = const Value.absent(),
     this.rpe = const Value.absent(),
     this.secondiTempo = const Value.absent(),
@@ -2884,6 +2921,7 @@ class SerieRegistrateCompanion extends UpdateCompanion<SerieRegistrateData> {
     Expression<int>? esercizioId,
     Expression<int>? indiceSerie,
     Expression<int>? ripetizioni,
+    Expression<String>? ripetizioniTesto,
     Expression<double>? peso,
     Expression<double>? rpe,
     Expression<int>? secondiTempo,
@@ -2896,6 +2934,7 @@ class SerieRegistrateCompanion extends UpdateCompanion<SerieRegistrateData> {
       if (esercizioId != null) 'esercizio_id': esercizioId,
       if (indiceSerie != null) 'serieIndex': indiceSerie,
       if (ripetizioni != null) 'ripetizioni': ripetizioni,
+      if (ripetizioniTesto != null) 'ripetizioni_testo': ripetizioniTesto,
       if (peso != null) 'peso': peso,
       if (rpe != null) 'rpe': rpe,
       if (secondiTempo != null) 'tempoSec': secondiTempo,
@@ -2910,6 +2949,7 @@ class SerieRegistrateCompanion extends UpdateCompanion<SerieRegistrateData> {
       Value<int>? esercizioId,
       Value<int>? indiceSerie,
       Value<int>? ripetizioni,
+      Value<String?>? ripetizioniTesto,
       Value<double?>? peso,
       Value<double?>? rpe,
       Value<int?>? secondiTempo,
@@ -2921,6 +2961,7 @@ class SerieRegistrateCompanion extends UpdateCompanion<SerieRegistrateData> {
       esercizioId: esercizioId ?? this.esercizioId,
       indiceSerie: indiceSerie ?? this.indiceSerie,
       ripetizioni: ripetizioni ?? this.ripetizioni,
+      ripetizioniTesto: ripetizioniTesto ?? this.ripetizioniTesto,
       peso: peso ?? this.peso,
       rpe: rpe ?? this.rpe,
       secondiTempo: secondiTempo ?? this.secondiTempo,
@@ -2946,6 +2987,9 @@ class SerieRegistrateCompanion extends UpdateCompanion<SerieRegistrateData> {
     }
     if (ripetizioni.present) {
       map['ripetizioni'] = Variable<int>(ripetizioni.value);
+    }
+    if (ripetizioniTesto.present) {
+      map['ripetizioni_testo'] = Variable<String>(ripetizioniTesto.value);
     }
     if (peso.present) {
       map['peso'] = Variable<double>(peso.value);
@@ -2973,6 +3017,7 @@ class SerieRegistrateCompanion extends UpdateCompanion<SerieRegistrateData> {
           ..write('esercizioId: $esercizioId, ')
           ..write('indiceSerie: $indiceSerie, ')
           ..write('ripetizioni: $ripetizioni, ')
+          ..write('ripetizioniTesto: $ripetizioniTesto, ')
           ..write('peso: $peso, ')
           ..write('rpe: $rpe, ')
           ..write('secondiTempo: $secondiTempo, ')
@@ -6325,6 +6370,7 @@ typedef $$SerieRegistrateTableCreateCompanionBuilder = SerieRegistrateCompanion
   required int esercizioId,
   required int indiceSerie,
   required int ripetizioni,
+  Value<String?> ripetizioniTesto,
   Value<double?> peso,
   Value<double?> rpe,
   Value<int?> secondiTempo,
@@ -6338,6 +6384,7 @@ typedef $$SerieRegistrateTableUpdateCompanionBuilder = SerieRegistrateCompanion
   Value<int> esercizioId,
   Value<int> indiceSerie,
   Value<int> ripetizioni,
+  Value<String?> ripetizioniTesto,
   Value<double?> peso,
   Value<double?> rpe,
   Value<int?> secondiTempo,
@@ -6397,6 +6444,10 @@ class $$SerieRegistrateTableFilterComposer
 
   ColumnFilters<int> get ripetizioni => $composableBuilder(
       column: $table.ripetizioni, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get ripetizioniTesto => $composableBuilder(
+      column: $table.ripetizioniTesto,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get peso => $composableBuilder(
       column: $table.peso, builder: (column) => ColumnFilters(column));
@@ -6471,6 +6522,10 @@ class $$SerieRegistrateTableOrderingComposer
 
   ColumnOrderings<int> get ripetizioni => $composableBuilder(
       column: $table.ripetizioni, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get ripetizioniTesto => $composableBuilder(
+      column: $table.ripetizioniTesto,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get peso => $composableBuilder(
       column: $table.peso, builder: (column) => ColumnOrderings(column));
@@ -6547,6 +6602,9 @@ class $$SerieRegistrateTableAnnotationComposer
 
   GeneratedColumn<int> get ripetizioni => $composableBuilder(
       column: $table.ripetizioni, builder: (column) => column);
+
+  GeneratedColumn<String> get ripetizioniTesto => $composableBuilder(
+      column: $table.ripetizioniTesto, builder: (column) => column);
 
   GeneratedColumn<double> get peso =>
       $composableBuilder(column: $table.peso, builder: (column) => column);
@@ -6634,6 +6692,7 @@ class $$SerieRegistrateTableTableManager extends RootTableManager<
             Value<int> esercizioId = const Value.absent(),
             Value<int> indiceSerie = const Value.absent(),
             Value<int> ripetizioni = const Value.absent(),
+            Value<String?> ripetizioniTesto = const Value.absent(),
             Value<double?> peso = const Value.absent(),
             Value<double?> rpe = const Value.absent(),
             Value<int?> secondiTempo = const Value.absent(),
@@ -6646,6 +6705,7 @@ class $$SerieRegistrateTableTableManager extends RootTableManager<
             esercizioId: esercizioId,
             indiceSerie: indiceSerie,
             ripetizioni: ripetizioni,
+            ripetizioniTesto: ripetizioniTesto,
             peso: peso,
             rpe: rpe,
             secondiTempo: secondiTempo,
@@ -6658,6 +6718,7 @@ class $$SerieRegistrateTableTableManager extends RootTableManager<
             required int esercizioId,
             required int indiceSerie,
             required int ripetizioni,
+            Value<String?> ripetizioniTesto = const Value.absent(),
             Value<double?> peso = const Value.absent(),
             Value<double?> rpe = const Value.absent(),
             Value<int?> secondiTempo = const Value.absent(),
@@ -6670,6 +6731,7 @@ class $$SerieRegistrateTableTableManager extends RootTableManager<
             esercizioId: esercizioId,
             indiceSerie: indiceSerie,
             ripetizioni: ripetizioni,
+            ripetizioniTesto: ripetizioniTesto,
             peso: peso,
             rpe: rpe,
             secondiTempo: secondiTempo,

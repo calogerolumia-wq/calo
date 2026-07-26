@@ -108,6 +108,7 @@ class SerieRegistrate extends Table {
   IntColumn get esercizioId => integer().references(Esercizi, #id)();
   IntColumn get indiceSerie => integer().named('serieIndex')();
   IntColumn get ripetizioni => integer()();
+  TextColumn get ripetizioniTesto => text().nullable()();
   RealColumn get peso => real().nullable()();
   RealColumn get rpe => real().nullable()();
   IntColumn get secondiTempo => integer().named('tempoSec').nullable()();
