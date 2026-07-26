@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 class AppSpacing {
@@ -444,5 +446,132 @@ class _AppSkeletonState extends State<AppSkeleton>
         ),
       ),
     );
+  }
+}
+
+// ─── Glass Card ───────────────────────────────────────────────────────────────
+
+class AppGlassCard extends StatelessWidget {
+  const AppGlassCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.radius,
+    this.blur = 16.0,
+    this.opacity = 0.75,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final BorderRadius? radius;
+  final double blur;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).colorScheme;
+    final r = radius ?? BorderRadius.circular(AppRadius.xl);
+
+    return ClipRRect(
+      borderRadius: r,
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          decoration: BoxDecoration(
+            color: c.surface.withOpacity(opacity),
+            borderRadius: r,
+            border: Border.all(color: c.outline.withOpacity(0.40)),
+          ),
+          padding: padding ?? const EdgeInsets.all(AppSpacing.lg),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Gradient Button ──────────────────────────────────────────────────────────
+
+class AppGradientButton extends StatelessWidget {
+  const AppGradientButton({
+    super.key,
+    required this.label,
+    this.icon,
+    this.onPressed,
+    this.expand = false,
+    this.small = false,
+    this.gradient,
+  });
+
+  final String label;
+  final IconData? icon;
+  final VoidCallback? onPressed;
+  final bool expand;
+  final bool small;
+  final Gradient? gradient;
+
+  static const _defaultGradient = LinearGradient(
+    colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final enabled = onPressed != null;
+
+    final vPad = small ? 10.0 : 15.0;
+    final hPad = small ? 16.0 : 22.0;
+    final effectiveGradient = gradient ?? _defaultGradient;
+
+    Widget content = Row(
+      mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (icon != null) ...[
+          Icon(
+            icon,
+            color: Colors.white.withOpacity(enabled ? 1.0 : 0.45),
+            size: small ? 16 : 18,
+          ),
+          SizedBox(width: small ? 6 : 8),
+        ],
+        Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: Colors.white.withOpacity(enabled ? 1.0 : 0.45),
+            fontWeight: FontWeight.w700,
+            fontSize: small ? 13 : 15,
+          ),
+        ),
+      ],
+    );
+
+    Widget btn = GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
+        decoration: BoxDecoration(
+          gradient: enabled ? effectiveGradient : null,
+          color: enabled ? null : c.onSurface.withOpacity(0.10),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: c.primary.withOpacity(0.28),
+                    blurRadius: 18,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+              : null,
+        ),
+        child: content,
+      ),
+    );
+
+    if (!expand) return btn;
+    return SizedBox(width: double.infinity, child: btn);
   }
 }

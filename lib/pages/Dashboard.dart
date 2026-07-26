@@ -66,17 +66,45 @@ class _Background extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme;
-    return DecoratedBox(
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          Container(color: c.background),
+          Positioned(
+            top: -80,
+            right: -100,
+            child: _Blob(size: 340, color: c.primary.withOpacity(0.10)),
+          ),
+          Positioned(
+            top: 260,
+            left: -80,
+            child: _Blob(size: 220, color: c.primary.withOpacity(0.06)),
+          ),
+          Positioned(
+            bottom: 80,
+            right: -50,
+            child: _Blob(size: 200, color: c.secondary.withOpacity(0.07)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Blob extends StatelessWidget {
+  const _Blob({required this.size, required this.color});
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color.alphaBlend(c.primary.withOpacity(0.04), c.background),
-            c.background,
-            Color.alphaBlend(c.tertiary.withOpacity(0.03), c.background),
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: const [0.0, 0.45, 1.0],
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, color.withOpacity(0)],
         ),
       ),
     );
@@ -144,23 +172,26 @@ class _BannerSessioneScaduta extends ConsumerWidget {
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   const _Header();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final c = theme.colorScheme;
     final now = DateTime.now();
+    final utente = ref.watch(fornitoreUtenteCorrente);
+    final _nomeParts = (utente?.nome ?? '').trim().split(RegExp(r'\s+'));
+    final primoNome = _nomeParts.isNotEmpty ? _nomeParts.first : '';
 
     return SafeArea(
       bottom: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
+            AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Logo / drawer button
             GestureDetector(
               onTap: () => Scaffold.of(context).openDrawer(),
               child: Container(
@@ -171,7 +202,7 @@ class _Header extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   boxShadow: [
                     BoxShadow(
-                      color: c.primary.withOpacity(0.28),
+                      color: c.primary.withOpacity(0.30),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
@@ -185,22 +216,34 @@ class _Header extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _saluto(now),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formattaDataBreve(now),
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    primoNome.isNotEmpty
+                        ? '${_saluto(now)},'
+                        : _saluto(now),
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: c.onSurface.withOpacity(0.50),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                  if (primoNome.isNotEmpty)
+                    Text(
+                      primoNome,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                        height: 1.1,
+                      ),
+                    )
+                  else
+                    Text(
+                      _formattaDataBreve(now),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: c.onSurface.withOpacity(0.45),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -329,10 +372,15 @@ class _HeroInCorso extends StatelessWidget {
           style: theme.textTheme.bodySmall,
         ),
         const SizedBox(height: AppSpacing.lg),
-        AppButton(
+        AppGradientButton(
           label: 'Riprendi sessione',
           icon: Icons.play_arrow_rounded,
           expand: true,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
           onPressed: () => Navigator.of(context, rootNavigator: true).push(
             MaterialPageRoute(
               builder: (_) => PaginaSessioneInCorso(sessioneId: sessione.id),
@@ -369,7 +417,7 @@ class _HeroPronto extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          AppButton(
+          AppGradientButton(
             label: 'Avvia allenamento',
             icon: Icons.play_arrow_rounded,
             expand: true,
@@ -398,10 +446,15 @@ class _HeroPronto extends ConsumerWidget {
               Text('Sfoglia le schede disponibili per te.',
                   style: theme.textTheme.bodySmall),
               const SizedBox(height: AppSpacing.lg),
-              AppButton(
+              AppGradientButton(
                 label: 'Vai alle schede',
                 icon: Icons.view_agenda_outlined,
                 expand: true,
+                gradient: LinearGradient(
+                  colors: [c.secondary, const Color(0xFFF97316)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
                 onPressed: () => Navigator.of(context, rootNavigator: true).push(
                   MaterialPageRoute(builder: (_) => const PaginaSchede()),
                 ),
@@ -436,7 +489,7 @@ class _HeroPronto extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: AppSpacing.lg),
-            AppButton(
+            AppGradientButton(
               label: 'Avvia allenamento',
               icon: Icons.play_arrow_rounded,
               expand: true,
@@ -748,9 +801,19 @@ class _ProgressModule extends ConsumerWidget {
                                       curve: Curves.easeOutCubic,
                                       height: max(6.0, h),
                                       decoration: BoxDecoration(
-                                        color: isLast
-                                            ? c.primary
-                                            : c.primary.withOpacity(0.45),
+                                        gradient: LinearGradient(
+                                          colors: isLast
+                                              ? [
+                                                  const Color(0xFF1E40AF),
+                                                  const Color(0xFF3B82F6),
+                                                ]
+                                              : [
+                                                  c.primary.withOpacity(0.35),
+                                                  c.primary.withOpacity(0.60),
+                                                ],
+                                          begin: Alignment.bottomCenter,
+                                          end: Alignment.topCenter,
+                                        ),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                     ),
