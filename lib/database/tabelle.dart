@@ -145,3 +145,14 @@ class Impostazioni extends Table {
   @override
   Set<Column> get primaryKey => {chiave};
 }
+
+class CredenzialeSalvate extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get username => text()();
+  TextColumn get password => text()();
+  TextColumn get nomeVisualizzato => text().nullable()();
+  IntColumn get aziendaId => integer().nullable()();
+  TextColumn get codiceAzienda => text().nullable()();
+  DateTimeColumn get ultimoUso =>
+      dateTime().withDefault(currentDateAndTime)();
+}

@@ -141,6 +141,13 @@ class GestoreAutenticazione extends AsyncNotifier<StatoAutenticazione> {
       featureTimer: risposta.featureTimer,
       featureMisurazioni: risposta.featureMisurazioni,
     );
+    await archivio.salvaCredenziali(
+      username: username,
+      password: password,
+      nomeVisualizzato: risposta.nomeCompleto,
+      aziendaId: aziendaId,
+      codiceAzienda: codiceAzienda,
+    );
 
     final utente = await archivio.leggiUtentePerId(risposta.id);
     if (utente == null) {
@@ -164,20 +171,11 @@ class GestoreAutenticazione extends AsyncNotifier<StatoAutenticazione> {
     );
   }
 
-  /// Token scaduto (401): mantiene i dati locali, disabilita le chiamate API.
+  /// Token scaduto (401): cancella il token e torna al login.
   Future<void> segnaSessioneScaduta() async {
-    final auth = state.valueOrNull;
-    final utente = auth?.utente;
-    if (utente == null) {
-      state = AsyncValue.data(StatoAutenticazione.nonAutenticato());
-      return;
-    }
-    state = AsyncValue.data(
-      StatoAutenticazione.offlineConUtente(
-        utente,
-        configurazione: auth?.configurazione ?? const ConfigurazioneApp(),
-      ),
-    );
+    final archivio = ref.read(fornitoreArchivioLocale);
+    await archivio.eliminaSessioneAuth();
+    state = AsyncValue.data(StatoAutenticazione.nonAutenticato());
   }
 
   Future<void> logout() async {
@@ -480,25 +478,6 @@ class GestoreSchedeRemote extends AutoDisposeAsyncNotifier<List<SchedaRemota>> {
     final auth = ref.watch(gestoreAutenticazione).valueOrNull;
     if (auth == null) return [];
 
-    // Modalità offline: usa le schede già salvate in SQLite
-    if (auth.modalitaOffline) {
-      final archivio = ref.read(fornitoreArchivioLocale);
-      final utenteId = auth.utente?.id;
-      if (utenteId == null) return [];
-      final locali = await archivio.leggiSchedePerUtente(utenteId);
-      return locali
-          .map((s) => SchedaRemota(
-                id: s.id,
-                nomeScheda: s.nomeScheda,
-                descrizione: s.descrizione,
-                livelloDifficolta: s.livelloDifficolta,
-                attiva: s.attiva,
-                noteAllenatore: s.noteAllenatore,
-                modello: s.modello,
-              ))
-          .toList();
-    }
-
     if (!auth.autenticato || auth.token == null) return [];
 
     try {
@@ -585,7 +564,7 @@ class GestoreMisurazioniRemote
     final utenteId = auth.utente!.id;
     final archivio = ref.read(fornitoreArchivioLocale);
 
-    if (auth.modalitaOffline || auth.token == null) {
+    if (auth.token == null) {
       return _daCacheLocale(archivio, utenteId);
     }
 

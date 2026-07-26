@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'pages/Dashboard.dart';
@@ -17,6 +18,7 @@ class AppAllenamento extends StatelessWidget {
       theme: tema(),
       themeMode: ThemeMode.light,
       home: const _AuthGate(),
+      builder: EasyLoading.init(),
     );
   }
 }
@@ -30,7 +32,7 @@ class _AuthGate extends ConsumerWidget {
     return stato.when(
       loading: () => const _SplashScreen(),
       error: (err, stack) => const PaginaLogin(),
-      data: (auth) => (auth.autenticato || auth.modalitaOffline)
+      data: (auth) => auth.autenticato
           ? const PaginaDashboard()
           : const PaginaLogin(),
     );

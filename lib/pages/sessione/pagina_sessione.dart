@@ -2,6 +2,8 @@
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+
 import '../../models/esercizio_sessione.dart';
 import '../../models/scheda_remota.dart';
 import '../../services/schede_service.dart';
@@ -26,22 +28,14 @@ class _PaginaSessioneState extends ConsumerState<PaginaSessione> {
   ) async {
     if (_avvioInCorso) return;
     setState(() => _avvioInCorso = true);
+    EasyLoading.show(status: 'Caricamento scheda...');
 
     try {
       final auth = ref.read(gestoreAutenticazione).valueOrNull;
-      if (auth == null) return;
-
-      // Modalità offline: avvia direttamente con i dati già in SQLite locale
-      if (auth.modalitaOffline) {
-        final idSessione = await ref
-            .read(gestoreSessioneAttiva.notifier)
-            .avviaDaScheda(scheda.id);
-        if (!mounted) return;
-        apriPagina(context, PaginaSessioneInCorso(sessioneId: idSessione));
+      if (auth == null || !auth.autenticato || auth.token == null) {
+        EasyLoading.dismiss();
         return;
       }
-
-      if (!auth.autenticato || auth.token == null) return;
 
       final esercizi =
           await SchedeService(token: auth.token!).getEserciziScheda(scheda.id);
@@ -50,6 +44,7 @@ class _PaginaSessioneState extends ConsumerState<PaginaSessione> {
           .read(gestoreSessioneAttiva.notifier)
           .avviaDaSchedaRemota(scheda, esercizi);
 
+      EasyLoading.dismiss();
       if (!mounted) return;
       apriPagina(
         context,
@@ -64,6 +59,7 @@ class _PaginaSessioneState extends ConsumerState<PaginaSessione> {
         ),
       );
     } catch (e) {
+      EasyLoading.dismiss();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Errore: $e')),

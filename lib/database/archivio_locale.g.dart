@@ -3638,6 +3638,403 @@ class ImpostazioniCompanion extends UpdateCompanion<ImpostazioniData> {
   }
 }
 
+class $CredenzialeSalvateTable extends CredenzialeSalvate
+    with TableInfo<$CredenzialeSalvateTable, CredenzialeSalvateData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CredenzialeSalvateTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _usernameMeta =
+      const VerificationMeta('username');
+  @override
+  late final GeneratedColumn<String> username = GeneratedColumn<String>(
+      'username', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _passwordMeta =
+      const VerificationMeta('password');
+  @override
+  late final GeneratedColumn<String> password = GeneratedColumn<String>(
+      'password', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _nomeVisualizzatoMeta =
+      const VerificationMeta('nomeVisualizzato');
+  @override
+  late final GeneratedColumn<String> nomeVisualizzato = GeneratedColumn<String>(
+      'nome_visualizzato', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _aziendaIdMeta =
+      const VerificationMeta('aziendaId');
+  @override
+  late final GeneratedColumn<int> aziendaId = GeneratedColumn<int>(
+      'azienda_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _codiceAziendaMeta =
+      const VerificationMeta('codiceAzienda');
+  @override
+  late final GeneratedColumn<String> codiceAzienda = GeneratedColumn<String>(
+      'codice_azienda', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _ultimoUsoMeta =
+      const VerificationMeta('ultimoUso');
+  @override
+  late final GeneratedColumn<DateTime> ultimoUso = GeneratedColumn<DateTime>(
+      'ultimo_uso', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        username,
+        password,
+        nomeVisualizzato,
+        aziendaId,
+        codiceAzienda,
+        ultimoUso
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'credenziale_salvate';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<CredenzialeSalvateData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('username')) {
+      context.handle(_usernameMeta,
+          username.isAcceptableOrUnknown(data['username']!, _usernameMeta));
+    } else if (isInserting) {
+      context.missing(_usernameMeta);
+    }
+    if (data.containsKey('password')) {
+      context.handle(_passwordMeta,
+          password.isAcceptableOrUnknown(data['password']!, _passwordMeta));
+    } else if (isInserting) {
+      context.missing(_passwordMeta);
+    }
+    if (data.containsKey('nome_visualizzato')) {
+      context.handle(
+          _nomeVisualizzatoMeta,
+          nomeVisualizzato.isAcceptableOrUnknown(
+              data['nome_visualizzato']!, _nomeVisualizzatoMeta));
+    }
+    if (data.containsKey('azienda_id')) {
+      context.handle(_aziendaIdMeta,
+          aziendaId.isAcceptableOrUnknown(data['azienda_id']!, _aziendaIdMeta));
+    }
+    if (data.containsKey('codice_azienda')) {
+      context.handle(
+          _codiceAziendaMeta,
+          codiceAzienda.isAcceptableOrUnknown(
+              data['codice_azienda']!, _codiceAziendaMeta));
+    }
+    if (data.containsKey('ultimo_uso')) {
+      context.handle(_ultimoUsoMeta,
+          ultimoUso.isAcceptableOrUnknown(data['ultimo_uso']!, _ultimoUsoMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CredenzialeSalvateData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CredenzialeSalvateData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      username: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}username'])!,
+      password: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}password'])!,
+      nomeVisualizzato: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}nome_visualizzato']),
+      aziendaId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}azienda_id']),
+      codiceAzienda: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}codice_azienda']),
+      ultimoUso: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}ultimo_uso'])!,
+    );
+  }
+
+  @override
+  $CredenzialeSalvateTable createAlias(String alias) {
+    return $CredenzialeSalvateTable(attachedDatabase, alias);
+  }
+}
+
+class CredenzialeSalvateData extends DataClass
+    implements Insertable<CredenzialeSalvateData> {
+  final int id;
+  final String username;
+  final String password;
+  final String? nomeVisualizzato;
+  final int? aziendaId;
+  final String? codiceAzienda;
+  final DateTime ultimoUso;
+  const CredenzialeSalvateData(
+      {required this.id,
+      required this.username,
+      required this.password,
+      this.nomeVisualizzato,
+      this.aziendaId,
+      this.codiceAzienda,
+      required this.ultimoUso});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['username'] = Variable<String>(username);
+    map['password'] = Variable<String>(password);
+    if (!nullToAbsent || nomeVisualizzato != null) {
+      map['nome_visualizzato'] = Variable<String>(nomeVisualizzato);
+    }
+    if (!nullToAbsent || aziendaId != null) {
+      map['azienda_id'] = Variable<int>(aziendaId);
+    }
+    if (!nullToAbsent || codiceAzienda != null) {
+      map['codice_azienda'] = Variable<String>(codiceAzienda);
+    }
+    map['ultimo_uso'] = Variable<DateTime>(ultimoUso);
+    return map;
+  }
+
+  CredenzialeSalvateCompanion toCompanion(bool nullToAbsent) {
+    return CredenzialeSalvateCompanion(
+      id: Value(id),
+      username: Value(username),
+      password: Value(password),
+      nomeVisualizzato: nomeVisualizzato == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nomeVisualizzato),
+      aziendaId: aziendaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(aziendaId),
+      codiceAzienda: codiceAzienda == null && nullToAbsent
+          ? const Value.absent()
+          : Value(codiceAzienda),
+      ultimoUso: Value(ultimoUso),
+    );
+  }
+
+  factory CredenzialeSalvateData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CredenzialeSalvateData(
+      id: serializer.fromJson<int>(json['id']),
+      username: serializer.fromJson<String>(json['username']),
+      password: serializer.fromJson<String>(json['password']),
+      nomeVisualizzato: serializer.fromJson<String?>(json['nomeVisualizzato']),
+      aziendaId: serializer.fromJson<int?>(json['aziendaId']),
+      codiceAzienda: serializer.fromJson<String?>(json['codiceAzienda']),
+      ultimoUso: serializer.fromJson<DateTime>(json['ultimoUso']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'username': serializer.toJson<String>(username),
+      'password': serializer.toJson<String>(password),
+      'nomeVisualizzato': serializer.toJson<String?>(nomeVisualizzato),
+      'aziendaId': serializer.toJson<int?>(aziendaId),
+      'codiceAzienda': serializer.toJson<String?>(codiceAzienda),
+      'ultimoUso': serializer.toJson<DateTime>(ultimoUso),
+    };
+  }
+
+  CredenzialeSalvateData copyWith(
+          {int? id,
+          String? username,
+          String? password,
+          Value<String?> nomeVisualizzato = const Value.absent(),
+          Value<int?> aziendaId = const Value.absent(),
+          Value<String?> codiceAzienda = const Value.absent(),
+          DateTime? ultimoUso}) =>
+      CredenzialeSalvateData(
+        id: id ?? this.id,
+        username: username ?? this.username,
+        password: password ?? this.password,
+        nomeVisualizzato: nomeVisualizzato.present
+            ? nomeVisualizzato.value
+            : this.nomeVisualizzato,
+        aziendaId: aziendaId.present ? aziendaId.value : this.aziendaId,
+        codiceAzienda:
+            codiceAzienda.present ? codiceAzienda.value : this.codiceAzienda,
+        ultimoUso: ultimoUso ?? this.ultimoUso,
+      );
+  CredenzialeSalvateData copyWithCompanion(CredenzialeSalvateCompanion data) {
+    return CredenzialeSalvateData(
+      id: data.id.present ? data.id.value : this.id,
+      username: data.username.present ? data.username.value : this.username,
+      password: data.password.present ? data.password.value : this.password,
+      nomeVisualizzato: data.nomeVisualizzato.present
+          ? data.nomeVisualizzato.value
+          : this.nomeVisualizzato,
+      aziendaId: data.aziendaId.present ? data.aziendaId.value : this.aziendaId,
+      codiceAzienda: data.codiceAzienda.present
+          ? data.codiceAzienda.value
+          : this.codiceAzienda,
+      ultimoUso: data.ultimoUso.present ? data.ultimoUso.value : this.ultimoUso,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CredenzialeSalvateData(')
+          ..write('id: $id, ')
+          ..write('username: $username, ')
+          ..write('password: $password, ')
+          ..write('nomeVisualizzato: $nomeVisualizzato, ')
+          ..write('aziendaId: $aziendaId, ')
+          ..write('codiceAzienda: $codiceAzienda, ')
+          ..write('ultimoUso: $ultimoUso')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, username, password, nomeVisualizzato,
+      aziendaId, codiceAzienda, ultimoUso);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CredenzialeSalvateData &&
+          other.id == this.id &&
+          other.username == this.username &&
+          other.password == this.password &&
+          other.nomeVisualizzato == this.nomeVisualizzato &&
+          other.aziendaId == this.aziendaId &&
+          other.codiceAzienda == this.codiceAzienda &&
+          other.ultimoUso == this.ultimoUso);
+}
+
+class CredenzialeSalvateCompanion
+    extends UpdateCompanion<CredenzialeSalvateData> {
+  final Value<int> id;
+  final Value<String> username;
+  final Value<String> password;
+  final Value<String?> nomeVisualizzato;
+  final Value<int?> aziendaId;
+  final Value<String?> codiceAzienda;
+  final Value<DateTime> ultimoUso;
+  const CredenzialeSalvateCompanion({
+    this.id = const Value.absent(),
+    this.username = const Value.absent(),
+    this.password = const Value.absent(),
+    this.nomeVisualizzato = const Value.absent(),
+    this.aziendaId = const Value.absent(),
+    this.codiceAzienda = const Value.absent(),
+    this.ultimoUso = const Value.absent(),
+  });
+  CredenzialeSalvateCompanion.insert({
+    this.id = const Value.absent(),
+    required String username,
+    required String password,
+    this.nomeVisualizzato = const Value.absent(),
+    this.aziendaId = const Value.absent(),
+    this.codiceAzienda = const Value.absent(),
+    this.ultimoUso = const Value.absent(),
+  })  : username = Value(username),
+        password = Value(password);
+  static Insertable<CredenzialeSalvateData> custom({
+    Expression<int>? id,
+    Expression<String>? username,
+    Expression<String>? password,
+    Expression<String>? nomeVisualizzato,
+    Expression<int>? aziendaId,
+    Expression<String>? codiceAzienda,
+    Expression<DateTime>? ultimoUso,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (username != null) 'username': username,
+      if (password != null) 'password': password,
+      if (nomeVisualizzato != null) 'nome_visualizzato': nomeVisualizzato,
+      if (aziendaId != null) 'azienda_id': aziendaId,
+      if (codiceAzienda != null) 'codice_azienda': codiceAzienda,
+      if (ultimoUso != null) 'ultimo_uso': ultimoUso,
+    });
+  }
+
+  CredenzialeSalvateCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? username,
+      Value<String>? password,
+      Value<String?>? nomeVisualizzato,
+      Value<int?>? aziendaId,
+      Value<String?>? codiceAzienda,
+      Value<DateTime>? ultimoUso}) {
+    return CredenzialeSalvateCompanion(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      password: password ?? this.password,
+      nomeVisualizzato: nomeVisualizzato ?? this.nomeVisualizzato,
+      aziendaId: aziendaId ?? this.aziendaId,
+      codiceAzienda: codiceAzienda ?? this.codiceAzienda,
+      ultimoUso: ultimoUso ?? this.ultimoUso,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (username.present) {
+      map['username'] = Variable<String>(username.value);
+    }
+    if (password.present) {
+      map['password'] = Variable<String>(password.value);
+    }
+    if (nomeVisualizzato.present) {
+      map['nome_visualizzato'] = Variable<String>(nomeVisualizzato.value);
+    }
+    if (aziendaId.present) {
+      map['azienda_id'] = Variable<int>(aziendaId.value);
+    }
+    if (codiceAzienda.present) {
+      map['codice_azienda'] = Variable<String>(codiceAzienda.value);
+    }
+    if (ultimoUso.present) {
+      map['ultimo_uso'] = Variable<DateTime>(ultimoUso.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CredenzialeSalvateCompanion(')
+          ..write('id: $id, ')
+          ..write('username: $username, ')
+          ..write('password: $password, ')
+          ..write('nomeVisualizzato: $nomeVisualizzato, ')
+          ..write('aziendaId: $aziendaId, ')
+          ..write('codiceAzienda: $codiceAzienda, ')
+          ..write('ultimoUso: $ultimoUso')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ArchivioLocale extends GeneratedDatabase {
   _$ArchivioLocale(QueryExecutor e) : super(e);
   $ArchivioLocaleManager get managers => $ArchivioLocaleManager(this);
@@ -3651,6 +4048,8 @@ abstract class _$ArchivioLocale extends GeneratedDatabase {
       $SerieRegistrateTable(this);
   late final $MisurazioniTable misurazioni = $MisurazioniTable(this);
   late final $ImpostazioniTable impostazioni = $ImpostazioniTable(this);
+  late final $CredenzialeSalvateTable credenzialeSalvate =
+      $CredenzialeSalvateTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3663,7 +4062,8 @@ abstract class _$ArchivioLocale extends GeneratedDatabase {
         sessioniAllenamento,
         serieRegistrate,
         misurazioni,
-        impostazioni
+        impostazioni,
+        credenzialeSalvate
       ];
 }
 
@@ -6801,6 +7201,210 @@ typedef $$ImpostazioniTableProcessedTableManager = ProcessedTableManager<
     ),
     ImpostazioniData,
     PrefetchHooks Function()>;
+typedef $$CredenzialeSalvateTableCreateCompanionBuilder
+    = CredenzialeSalvateCompanion Function({
+  Value<int> id,
+  required String username,
+  required String password,
+  Value<String?> nomeVisualizzato,
+  Value<int?> aziendaId,
+  Value<String?> codiceAzienda,
+  Value<DateTime> ultimoUso,
+});
+typedef $$CredenzialeSalvateTableUpdateCompanionBuilder
+    = CredenzialeSalvateCompanion Function({
+  Value<int> id,
+  Value<String> username,
+  Value<String> password,
+  Value<String?> nomeVisualizzato,
+  Value<int?> aziendaId,
+  Value<String?> codiceAzienda,
+  Value<DateTime> ultimoUso,
+});
+
+class $$CredenzialeSalvateTableFilterComposer
+    extends Composer<_$ArchivioLocale, $CredenzialeSalvateTable> {
+  $$CredenzialeSalvateTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get username => $composableBuilder(
+      column: $table.username, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get password => $composableBuilder(
+      column: $table.password, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get nomeVisualizzato => $composableBuilder(
+      column: $table.nomeVisualizzato,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get aziendaId => $composableBuilder(
+      column: $table.aziendaId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get codiceAzienda => $composableBuilder(
+      column: $table.codiceAzienda, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get ultimoUso => $composableBuilder(
+      column: $table.ultimoUso, builder: (column) => ColumnFilters(column));
+}
+
+class $$CredenzialeSalvateTableOrderingComposer
+    extends Composer<_$ArchivioLocale, $CredenzialeSalvateTable> {
+  $$CredenzialeSalvateTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get username => $composableBuilder(
+      column: $table.username, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get password => $composableBuilder(
+      column: $table.password, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get nomeVisualizzato => $composableBuilder(
+      column: $table.nomeVisualizzato,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get aziendaId => $composableBuilder(
+      column: $table.aziendaId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get codiceAzienda => $composableBuilder(
+      column: $table.codiceAzienda,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get ultimoUso => $composableBuilder(
+      column: $table.ultimoUso, builder: (column) => ColumnOrderings(column));
+}
+
+class $$CredenzialeSalvateTableAnnotationComposer
+    extends Composer<_$ArchivioLocale, $CredenzialeSalvateTable> {
+  $$CredenzialeSalvateTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get username =>
+      $composableBuilder(column: $table.username, builder: (column) => column);
+
+  GeneratedColumn<String> get password =>
+      $composableBuilder(column: $table.password, builder: (column) => column);
+
+  GeneratedColumn<String> get nomeVisualizzato => $composableBuilder(
+      column: $table.nomeVisualizzato, builder: (column) => column);
+
+  GeneratedColumn<int> get aziendaId =>
+      $composableBuilder(column: $table.aziendaId, builder: (column) => column);
+
+  GeneratedColumn<String> get codiceAzienda => $composableBuilder(
+      column: $table.codiceAzienda, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get ultimoUso =>
+      $composableBuilder(column: $table.ultimoUso, builder: (column) => column);
+}
+
+class $$CredenzialeSalvateTableTableManager extends RootTableManager<
+    _$ArchivioLocale,
+    $CredenzialeSalvateTable,
+    CredenzialeSalvateData,
+    $$CredenzialeSalvateTableFilterComposer,
+    $$CredenzialeSalvateTableOrderingComposer,
+    $$CredenzialeSalvateTableAnnotationComposer,
+    $$CredenzialeSalvateTableCreateCompanionBuilder,
+    $$CredenzialeSalvateTableUpdateCompanionBuilder,
+    (
+      CredenzialeSalvateData,
+      BaseReferences<_$ArchivioLocale, $CredenzialeSalvateTable,
+          CredenzialeSalvateData>
+    ),
+    CredenzialeSalvateData,
+    PrefetchHooks Function()> {
+  $$CredenzialeSalvateTableTableManager(
+      _$ArchivioLocale db, $CredenzialeSalvateTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CredenzialeSalvateTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CredenzialeSalvateTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CredenzialeSalvateTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> username = const Value.absent(),
+            Value<String> password = const Value.absent(),
+            Value<String?> nomeVisualizzato = const Value.absent(),
+            Value<int?> aziendaId = const Value.absent(),
+            Value<String?> codiceAzienda = const Value.absent(),
+            Value<DateTime> ultimoUso = const Value.absent(),
+          }) =>
+              CredenzialeSalvateCompanion(
+            id: id,
+            username: username,
+            password: password,
+            nomeVisualizzato: nomeVisualizzato,
+            aziendaId: aziendaId,
+            codiceAzienda: codiceAzienda,
+            ultimoUso: ultimoUso,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String username,
+            required String password,
+            Value<String?> nomeVisualizzato = const Value.absent(),
+            Value<int?> aziendaId = const Value.absent(),
+            Value<String?> codiceAzienda = const Value.absent(),
+            Value<DateTime> ultimoUso = const Value.absent(),
+          }) =>
+              CredenzialeSalvateCompanion.insert(
+            id: id,
+            username: username,
+            password: password,
+            nomeVisualizzato: nomeVisualizzato,
+            aziendaId: aziendaId,
+            codiceAzienda: codiceAzienda,
+            ultimoUso: ultimoUso,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$CredenzialeSalvateTableProcessedTableManager = ProcessedTableManager<
+    _$ArchivioLocale,
+    $CredenzialeSalvateTable,
+    CredenzialeSalvateData,
+    $$CredenzialeSalvateTableFilterComposer,
+    $$CredenzialeSalvateTableOrderingComposer,
+    $$CredenzialeSalvateTableAnnotationComposer,
+    $$CredenzialeSalvateTableCreateCompanionBuilder,
+    $$CredenzialeSalvateTableUpdateCompanionBuilder,
+    (
+      CredenzialeSalvateData,
+      BaseReferences<_$ArchivioLocale, $CredenzialeSalvateTable,
+          CredenzialeSalvateData>
+    ),
+    CredenzialeSalvateData,
+    PrefetchHooks Function()>;
 
 class $ArchivioLocaleManager {
   final _$ArchivioLocale _db;
@@ -6821,4 +7425,6 @@ class $ArchivioLocaleManager {
       $$MisurazioniTableTableManager(_db, _db.misurazioni);
   $$ImpostazioniTableTableManager get impostazioni =>
       $$ImpostazioniTableTableManager(_db, _db.impostazioni);
+  $$CredenzialeSalvateTableTableManager get credenzialeSalvate =>
+      $$CredenzialeSalvateTableTableManager(_db, _db.credenzialeSalvate);
 }

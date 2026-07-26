@@ -116,13 +116,14 @@ LazyDatabase _apriConnessione() {
     SerieRegistrate,
     Misurazioni,
     Impostazioni,
+    CredenzialeSalvate,
   ],
 )
 class ArchivioLocale extends _$ArchivioLocale {
   ArchivioLocale() : super(_apriConnessione());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -145,6 +146,9 @@ class ArchivioLocale extends _$ArchivioLocale {
           }
           if (from < 6) {
             await m.addColumn(utenti, utenti.username);
+          }
+          if (from < 7) {
+            await m.createTable(credenzialeSalvate);
           }
         },
       );
@@ -1158,5 +1162,52 @@ class ArchivioLocale extends _$ArchivioLocale {
       (g) => g.name.toLowerCase() == nome.toLowerCase(),
       orElse: () => GruppoMuscolare.pettorali,
     );
+  }
+
+  // ─── Credenziali salvate ───────────────────────────────────────────────────
+
+  Future<void> salvaCredenziali({
+    required String username,
+    required String password,
+    String? nomeVisualizzato,
+    int? aziendaId,
+    String? codiceAzienda,
+  }) async {
+    final existing = await (select(credenzialeSalvate)
+          ..where((t) => t.username.equals(username)))
+        .getSingleOrNull();
+
+    if (existing != null) {
+      await (update(credenzialeSalvate)
+            ..where((t) => t.id.equals(existing.id)))
+          .write(CredenzialeSalvateCompanion(
+        password: Value(password),
+        nomeVisualizzato: Value(nomeVisualizzato),
+        aziendaId: Value(aziendaId),
+        codiceAzienda: Value(codiceAzienda),
+        ultimoUso: Value(DateTime.now()),
+      ));
+    } else {
+      await into(credenzialeSalvate).insert(
+        CredenzialeSalvateCompanion(
+          username: Value(username),
+          password: Value(password),
+          nomeVisualizzato: Value(nomeVisualizzato),
+          aziendaId: Value(aziendaId),
+          codiceAzienda: Value(codiceAzienda),
+          ultimoUso: Value(DateTime.now()),
+        ),
+      );
+    }
+  }
+
+  Future<List<CredenzialeSalvateData>> leggiCredenziali() async {
+    return (select(credenzialeSalvate)
+          ..orderBy([(t) => OrderingTerm.desc(t.ultimoUso)]))
+        .get();
+  }
+
+  Future<void> eliminaCredenziale(int id) async {
+    await (delete(credenzialeSalvate)..where((t) => t.id.equals(id))).go();
   }
 }

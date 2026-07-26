@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fitness_app/pages/Impostazioni.dart';
@@ -34,6 +35,7 @@ class AppDrawer extends ConsumerWidget {
     if (conferma != true) return;
 
     Navigator.of(context).pop();
+    EasyLoading.show(status: 'Disconnessione...');
 
     try {
       await ref.read(gestoreAutenticazione.notifier).logout();
@@ -47,6 +49,8 @@ class AppDrawer extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Logout non riuscito. Riprova.')),
       );
+    } finally {
+      EasyLoading.dismiss();
     }
   }
 
